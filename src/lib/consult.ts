@@ -231,8 +231,10 @@ export function buildExpertReview(
   coreItems: ItemResult[],
   isYouth: boolean | null,
   age: number | null,
-  hasRegistration: boolean,
 ): ExpertReview {
+  // 실질 검토 요소만 산정에 반영한다.
+  // 등록면허세는 법인이라는 이유만으로 항상 잡혀 추천도를 부풀리므로 산정에서 제외
+  // (등록면허세 참고 카드/안내문은 별도로 그대로 유지됨).
   const factors: string[] = []
 
   // 창업 형태 관련
@@ -257,9 +259,6 @@ export function buildExpertReview(
   if (acq && acq.verdict !== 'good') factors.push('취득세 검토 필요')
   const prop = coreItems.find((i) => i.key === 'propertyTax')
   if (prop && prop.verdict !== 'good') factors.push('재산세 검토 필요')
-
-  // 등록면허세 이슈 (법인 설립 등기)
-  if (hasRegistration && form.businessType === 'corporation') factors.push('등록면허세 이슈')
 
   // 청년 경계구간 (만 33~35세) 또는 생년월일 미입력
   if (age !== null && age >= 33 && age <= 35) factors.push('청년 여부 경계구간')

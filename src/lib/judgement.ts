@@ -313,7 +313,7 @@ export function judge(form: FormData, baseDate: Date = new Date()): JudgementRes
     savingsPoints: buildSavingsPoints(coreItems, overall, recognition.verdict),
     savingsAdvice: buildSavingsAdvice(keyChecks),
     missedPoints: buildMissedPoints(form, isYouth),
-    expertReview: buildExpertReview(form, coreItems, isYouth, age, registration !== null),
+    expertReview: buildExpertReview(form, coreItems, isYouth, age),
     isYouth,
     age,
     startupRecognition: recognition.verdict,
