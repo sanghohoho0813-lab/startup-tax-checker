@@ -82,18 +82,19 @@ export interface ExclusionReason {
 }
 
 // 예상 절세 포인트 한 줄 (정확 세액 계산 아님)
-export type SavingsTone = 'good' | 'bad' | 'neutral'
+export type SavingsTone = 'good' | 'caution' | 'bad'
 export interface SavingsPoint {
   tone: SavingsTone
   text: string
 }
 
-// 상담 우선순위 등급
-export type PriorityGrade = 'A' | 'B' | 'C' | 'D'
-export interface ConsultPriority {
-  grade: PriorityGrade
-  label: string // 예: 지금 바로 상담 연결 권장
-  description: string // 등급 사유
+// 전문가 검토 추천도 등급
+export type ReviewGrade = 'A' | 'B' | 'C' | 'D'
+export interface ExpertReview {
+  grade: ReviewGrade
+  label: string // 예: 상담 강력 추천
+  description: string // 등급 사유 설명
+  factors: string[] // 감지된 검토 필요 요소
 }
 
 // 종합 판정 결과
@@ -105,8 +106,9 @@ export interface JudgementResult {
 
   // 상담 전환용 advisory
   savingsPoints: SavingsPoint[] // 예상 절세 포인트
+  savingsAdvice: string // 상담 시 확인 포인트 한 줄
   missedPoints: string[] // 많은 대표님들이 놓치는 부분
-  priority: ConsultPriority // 상담 우선순위 (A/B/C/D)
+  expertReview: ExpertReview // 전문가 검토 추천도 (A/B/C/D)
 
   // 청년 분석
   isYouth: boolean | null

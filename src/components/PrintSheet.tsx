@@ -42,7 +42,7 @@ export default function PrintSheet({ form, result, baseDate }: Props) {
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-bold text-gray-500">종합 판정</span>
           <span className="text-[10px] font-bold text-gray-500">
-            상담 우선순위 {result.priority.grade}등급
+            전문가 검토 추천도 {result.expertReview.grade}등급
           </span>
         </div>
         <div className="mt-0.5 text-[18px] font-extrabold" style={{ color: verdictColor }}>
@@ -140,7 +140,8 @@ export default function PrintSheet({ form, result, baseDate }: Props) {
       <div className="mt-3">
         <SectionTitle>상담 권장사항</SectionTitle>
         <p className="mt-1 text-[10px] font-semibold text-gray-800">
-          [{result.priority.grade}등급] {result.priority.label} — {result.priority.description}
+          [{result.expertReview.grade}등급] {result.expertReview.label} —{' '}
+          {result.expertReview.description}
         </p>
         <p className="mt-1 text-[10px] text-gray-700">
           <b>전문가 검토 시 확인 가능한 항목 · </b>

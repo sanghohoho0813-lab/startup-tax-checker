@@ -36,21 +36,6 @@ export default function OverallCard({ result }: { result: JudgementResult }) {
         </div>
       )}
 
-      {/* 주요 확인사항 */}
-      {result.keyChecks.length > 0 && (
-        <div className="mt-4 rounded-2xl bg-white/70 p-4">
-          <div className="mb-1.5 text-base font-bold text-gray-800">주요 확인사항</div>
-          <ul className="space-y-1">
-            {result.keyChecks.map((c) => (
-              <li key={c} className="flex gap-2 text-base leading-relaxed text-gray-600">
-                <span className="text-gray-400">•</span>
-                <span>{c}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       {result.isYouth !== null && (
         <p className="mt-3 text-sm text-gray-500">
           ※ 병역기간에 따라 청년 여부가 달라질 수 있습니다.

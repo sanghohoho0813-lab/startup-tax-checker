@@ -3,8 +3,8 @@ import type { JudgementResult } from '../types'
 import { DISCLAIMER } from '../lib/judgement'
 import { Accordion } from './ui'
 import OverallCard from './OverallCard'
+import ExpertReviewCard from './ExpertReviewCard'
 import SavingsCard from './SavingsCard'
-import PriorityCard from './PriorityCard'
 import ConsultCard from './ConsultCard'
 import MissedPointsCard from './MissedPointsCard'
 import ContractCta from './ContractCta'
@@ -37,28 +37,20 @@ export default function ResultCards({ result, summaryText, onBack, onPrint }: Pr
     window.setTimeout(() => setCopied(false), 2000)
   }
 
-  // 모바일 순서: 종합판정 → 절세포인트 → 상담우선순위 → 상담핵심질문 → 놓치는부분 → 상세보기 → CTA
+  // 초기 노출: 1)종합판정 2)전문가 검토 추천도 3)예상 절세 포인트 4)복사/PDF 5)추가 확인 항목
+  // 접힘: 상담 예상 질문 / 대표님들이 놓치는 부분 / 세부 판정 근거
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <OverallCard result={result} />
-      <SavingsCard points={result.savingsPoints} />
-      <PriorityCard priority={result.priority} />
-      <ConsultCard questions={result.consultQuestions} />
-      <MissedPointsCard points={result.missedPoints} />
+      <ExpertReviewCard review={result.expertReview} />
+      <SavingsCard points={result.savingsPoints} advice={result.savingsAdvice} />
 
-      {/* 액션 버튼 */}
-      <div className="flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={onBack}
-          className="rounded-2xl border border-gray-200 bg-white px-6 py-4 text-lg font-bold text-gray-600 shadow-card transition-colors hover:bg-gray-50"
-        >
-          다시 입력
-        </button>
+      {/* 액션 버튼 — 항상 화면 폭에 맞게 */}
+      <div className="grid grid-cols-2 gap-2.5">
         <button
           type="button"
           onClick={handleCopy}
-          className="flex-1 rounded-2xl bg-brand px-6 py-4 text-lg font-bold text-white shadow-card transition-colors hover:bg-brand-dark"
+          className="col-span-2 rounded-2xl bg-brand px-6 py-4 text-lg font-bold text-white shadow-card transition-colors hover:bg-brand-dark"
         >
           {copied ? '✓ 복사됨' : '결과 복사하기'}
         </button>
@@ -69,10 +61,42 @@ export default function ResultCards({ result, summaryText, onBack, onPrint }: Pr
         >
           PDF 출력
         </button>
+        <button
+          type="button"
+          onClick={onBack}
+          className="rounded-2xl border border-gray-200 bg-white px-6 py-4 text-lg font-bold text-gray-600 shadow-card transition-colors hover:bg-gray-50"
+        >
+          다시 입력
+        </button>
       </div>
 
-      {/* 상세보기 — 기본 닫힘 아코디언 */}
-      <Accordion title="상세보기 (항목별 판정)">
+      {/* 추가 확인 항목 (초기 노출) */}
+      {result.keyChecks.length > 0 && (
+        <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-card sm:p-6">
+          <h3 className="text-lg font-bold text-gray-900">추가 확인 항목</h3>
+          <ul className="mt-3 space-y-1.5">
+            {result.keyChecks.map((c) => (
+              <li key={c} className="flex gap-2 text-base leading-relaxed text-gray-600">
+                <span className="text-brand">•</span>
+                <span>{c}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* 접힘 영역 1: 상담 예상 질문 */}
+      <Accordion title="상담 예상 질문">
+        <ConsultCard questions={result.consultQuestions} />
+      </Accordion>
+
+      {/* 접힘 영역 2: 대표님들이 놓치는 부분 */}
+      <Accordion title="대표님들이 놓치는 부분">
+        <MissedPointsCard points={result.missedPoints} />
+      </Accordion>
+
+      {/* 접힘 영역 3: 세부 판정 근거 */}
+      <Accordion title="세부 판정 근거">
         <div className="flex flex-col gap-3">
           {result.coreItems.map((item) => (
             <ItemCard key={item.key} item={item} />
@@ -94,11 +118,11 @@ export default function ResultCards({ result, summaryText, onBack, onPrint }: Pr
         </div>
       </Accordion>
 
-      {/* 계약 유도 CTA */}
+      {/* 상담 전환 CTA */}
       <ContractCta checklist={result.consultChecklist} />
 
       {/* 주의 문구 */}
-      <div className="rounded-3xl border border-gray-200 bg-gray-50 p-6">
+      <div className="rounded-3xl border border-gray-200 bg-gray-50 p-5">
         <div className="mb-1 text-base font-bold text-gray-500">⚠️ 안내</div>
         <p className="text-base leading-relaxed text-gray-500">{DISCLAIMER}</p>
       </div>

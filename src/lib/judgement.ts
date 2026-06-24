@@ -10,10 +10,11 @@ import { diagnoseExclusion } from './exclusion'
 import {
   buildConsultChecklist,
   buildConsultQuestions,
+  buildExpertReview,
   buildKeyChecks,
   buildMissedPoints,
-  buildPriority,
   buildReasons,
+  buildSavingsAdvice,
   buildSavingsPoints,
 } from './consult'
 
@@ -302,14 +303,17 @@ export function judge(form: FormData, baseDate: Date = new Date()): JudgementRes
     }
   }
 
+  const keyChecks = buildKeyChecks(form)
+
   return {
     overall,
     oneLineConclusion: VERDICT_ONELINE[overall],
     reasons: buildReasons(form, isYouth),
-    keyChecks: buildKeyChecks(form),
+    keyChecks,
     savingsPoints: buildSavingsPoints(coreItems, overall, recognition.verdict),
+    savingsAdvice: buildSavingsAdvice(keyChecks),
     missedPoints: buildMissedPoints(form, isYouth),
-    priority: buildPriority(overall),
+    expertReview: buildExpertReview(form, coreItems, isYouth, age, registration !== null),
     isYouth,
     age,
     startupRecognition: recognition.verdict,

@@ -1,5 +1,5 @@
 import type {
-  ConsultPriority,
+  ExpertReview,
   FormData,
   ItemResult,
   SavingsPoint,
@@ -123,22 +123,16 @@ export function buildConsultQuestions(form: FormData, isYouth: boolean | null): 
   return dedupe(out).slice(0, 6)
 }
 
-// 전문가 상담 시 확인할 항목 체크리스트 (계약 유도, 3~5개)
-export function buildConsultChecklist(form: FormData): string[] {
-  const out: string[] = []
-
-  out.push('창업 인정 여부 검토')
-
-  if (isExcludedIndustry(form) || form.industry === 'etc' || form.industry === '') {
-    out.push('업종코드 검토')
-  }
-  if (form.overconcentration !== 'no') {
-    out.push('과밀억제권역 검토')
-  }
-  out.push('최초 소득 발생연도 검토')
-  out.push('취득세 감면 가능성 검토')
-
-  return dedupe(out).slice(0, 5)
+// 전문가 검토 시 확인할 항목 체크리스트 (계약 유도)
+// CTA 사양에 맞춘 핵심 5개 항목을 기본 제공한다.
+export function buildConsultChecklist(_form: FormData): string[] {
+  return [
+    '창업 연혁 확인',
+    '업종 코드 검토',
+    '과밀억제권역 검토',
+    '취득세 감면 가능성 검토',
+    '최초 소득 발생연도 검토',
+  ]
 }
 
 // ---------------------------------------------------------------------------
@@ -168,14 +162,35 @@ export function buildSavingsPoints(
 
   for (const item of coreItems) {
     const short = SAVINGS_SHORT[item.key] ?? item.title
-    if (item.verdict === 'bad') {
-      points.push({ tone: 'bad', text: `${short} 감면 적용이 어려울 수 있습니다.` })
-    } else {
-      points.push({ tone: 'good', text: `${short} 감면 가능성 검토 대상` })
+    switch (item.verdict) {
+      case 'good':
+        points.push({ tone: 'good', text: `${short} 감면 검토 대상` })
+        break
+      case 'caution':
+        points.push({ tone: 'caution', text: `${short} 감면 가능성 있으나 제한 검토 필요` })
+        break
+      case 'conditional':
+        points.push({ tone: 'caution', text: `${short} 감면 가능성 검토 필요 (조건부)` })
+        break
+      case 'bad':
+        points.push({ tone: 'bad', text: `${short} 감면 어려움` })
+        break
     }
   }
 
   return points
+}
+
+// 절세 포인트 하단 한 줄 — 상담 시 무엇을 확인해야 하는지
+export function buildSavingsAdvice(keyChecks: string[]): string {
+  if (keyChecks.length === 0) {
+    return '상담 시 창업 인정 여부와 업종코드를 확인하면 적용 여부가 분명해집니다.'
+  }
+  const top = keyChecks
+    .slice(0, 2)
+    .map((c) => c.replace(/\s*확인$/, '').replace(/\s*여부$/, ''))
+    .join(', ')
+  return `상담 시 ${top} 등을 확인하면 적용 가능 여부가 분명해집니다.`
 }
 
 // ---------------------------------------------------------------------------
@@ -208,35 +223,80 @@ export function buildMissedPoints(form: FormData, isYouth: boolean | null): stri
 }
 
 // ---------------------------------------------------------------------------
-// 상담 우선순위 (A/B/C/D) — 상담사가 연락 순서를 판단
+// 전문가 검토 추천도 (A/B/C/D)
+// 단정하기 어려운/검토 필요 요소가 많을수록 A(상담 강력 추천)에 가깝다.
 // ---------------------------------------------------------------------------
-export function buildPriority(overall: Verdict): ConsultPriority {
-  switch (overall) {
-    case 'good':
-      return {
-        grade: 'A',
-        label: '지금 바로 상담 연결 권장',
-        description: '확인만 하면 감면 적용 가능성이 높은 우선 상담 대상입니다.',
-      }
-    case 'caution':
-      return {
-        grade: 'B',
-        label: '우선 상담 권장',
-        description: '일부 항목만 확인하면 적용 여부가 분명해지는 케이스입니다.',
-      }
-    case 'conditional':
-      return {
-        grade: 'C',
-        label: '구조 검토 후 상담',
-        description: '창업 형태·권역 등 구조 검토가 선행되어야 하는 케이스입니다.',
-      }
-    case 'bad':
-    default:
-      return {
-        grade: 'D',
-        label: '감면 가능성 낮음',
-        description: '현재 정보 기준 감면 적용 가능성이 낮은 케이스입니다.',
-      }
+export function buildExpertReview(
+  form: FormData,
+  coreItems: ItemResult[],
+  isYouth: boolean | null,
+  age: number | null,
+  hasRegistration: boolean,
+): ExpertReview {
+  const factors: string[] = []
+
+  // 창업 형태 관련
+  if (form.startupForm === 'conversion') factors.push('법인전환')
+  if (form.startupForm === 'acquisition') factors.push('개인사업 양수')
+  if (form.startupForm === 'succession') factors.push('특수관계인 승계')
+  if (form.startupForm === 'reopen_same') factors.push('동종업 재창업')
+  if (form.startupForm === 'unknown' || form.startupForm === '') factors.push('창업 형태 불명확')
+
+  // 과밀억제권역
+  if (form.overconcentration === 'yes') factors.push('과밀억제권역')
+  if (form.overconcentration === 'unknown' || form.overconcentration === '')
+    factors.push('과밀억제권역 불명확')
+
+  // 업종
+  if (form.industry === 'real_estate' || form.industry === 'finance_insurance')
+    factors.push('감면 제외 우려 업종')
+  if (form.industry === 'etc' || form.industry === '') factors.push('업종 불명확')
+
+  // 항목별 검토 필요 (취득세/재산세)
+  const acq = coreItems.find((i) => i.key === 'acquisitionTax')
+  if (acq && acq.verdict !== 'good') factors.push('취득세 검토 필요')
+  const prop = coreItems.find((i) => i.key === 'propertyTax')
+  if (prop && prop.verdict !== 'good') factors.push('재산세 검토 필요')
+
+  // 등록면허세 이슈 (법인 설립 등기)
+  if (hasRegistration && form.businessType === 'corporation') factors.push('등록면허세 이슈')
+
+  // 청년 경계구간 (만 33~35세) 또는 생년월일 미입력
+  if (age !== null && age >= 33 && age <= 35) factors.push('청년 여부 경계구간')
+  if (isYouth === null) factors.push('대표자 정보 부족')
+
+  const n = factors.length
+
+  if (n >= 4) {
+    return {
+      grade: 'A',
+      label: '상담 강력 추천',
+      description:
+        '현재 정보만으로 단정하기 어려운 항목이 많아 전문가의 추가 검토가 강력히 권장됩니다.',
+      factors,
+    }
+  }
+  if (n >= 2) {
+    return {
+      grade: 'B',
+      label: '상담 추천',
+      description: '현재 정보만으로 단정하기 어려운 항목이 있어 추가 검토가 권장됩니다.',
+      factors,
+    }
+  }
+  if (n === 1) {
+    return {
+      grade: 'C',
+      label: '간단 확인 권장',
+      description: '대부분 명확하나 한 가지 항목은 간단히 확인해 두는 것이 좋습니다.',
+      factors,
+    }
+  }
+  return {
+    grade: 'D',
+    label: '셀프 검토 가능',
+    description: '입력 정보 기준 큰 변수는 없어 보이나, 적용 전 최종 확인은 필요합니다.',
+    factors,
   }
 }
 
