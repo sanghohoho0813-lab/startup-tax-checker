@@ -3,7 +3,10 @@ import type { JudgementResult } from '../types'
 import { DISCLAIMER } from '../lib/judgement'
 import { Accordion } from './ui'
 import OverallCard from './OverallCard'
+import SavingsCard from './SavingsCard'
+import PriorityCard from './PriorityCard'
 import ConsultCard from './ConsultCard'
+import MissedPointsCard from './MissedPointsCard'
 import ContractCta from './ContractCta'
 import ExclusionCard from './ExclusionCard'
 import ItemCard from './ItemCard'
@@ -34,10 +37,14 @@ export default function ResultCards({ result, summaryText, onBack, onPrint }: Pr
     window.setTimeout(() => setCopied(false), 2000)
   }
 
+  // 모바일 순서: 종합판정 → 절세포인트 → 상담우선순위 → 상담핵심질문 → 놓치는부분 → 상세보기 → CTA
   return (
     <div className="flex flex-col gap-4">
-      {/* 1) 초기 노출: 종합판정 + 한줄결론 + 주요 확인사항 */}
       <OverallCard result={result} />
+      <SavingsCard points={result.savingsPoints} />
+      <PriorityCard priority={result.priority} />
+      <ConsultCard questions={result.consultQuestions} />
+      <MissedPointsCard points={result.missedPoints} />
 
       {/* 액션 버튼 */}
       <div className="flex flex-wrap gap-3">
@@ -53,7 +60,7 @@ export default function ResultCards({ result, summaryText, onBack, onPrint }: Pr
           onClick={handleCopy}
           className="flex-1 rounded-2xl bg-brand px-6 py-4 text-lg font-bold text-white shadow-card transition-colors hover:bg-brand-dark"
         >
-          {copied ? '✓ 복사됨' : '카톡 요약 복사'}
+          {copied ? '✓ 복사됨' : '결과 복사하기'}
         </button>
         <button
           type="button"
@@ -64,10 +71,7 @@ export default function ResultCards({ result, summaryText, onBack, onPrint }: Pr
         </button>
       </div>
 
-      {/* 2) 상담 핵심 질문 (컨설턴트용) */}
-      <ConsultCard questions={result.consultQuestions} />
-
-      {/* 3) 상세보기 — 기본 닫힘 아코디언 */}
+      {/* 상세보기 — 기본 닫힘 아코디언 */}
       <Accordion title="상세보기 (항목별 판정)">
         <div className="flex flex-col gap-3">
           {result.coreItems.map((item) => (
@@ -90,7 +94,7 @@ export default function ResultCards({ result, summaryText, onBack, onPrint }: Pr
         </div>
       </Accordion>
 
-      {/* 4) 계약 유도 CTA */}
+      {/* 계약 유도 CTA */}
       <ContractCta checklist={result.consultChecklist} />
 
       {/* 주의 문구 */}

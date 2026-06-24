@@ -10,7 +10,7 @@ interface Props {
   baseDate: Date
 }
 
-// A4 1페이지 「창업감면 사전진단 결과서」
+// A4 1페이지 「창업감면 사전진단 결과서」 — 고객 발송 가능한 보고서 수준
 // 화면에서는 숨기고(hidden) 인쇄 시에만 표시(print:block)된다.
 export default function PrintSheet({ form, result, baseDate }: Props) {
   const today = formatDate(baseDate)
@@ -19,27 +19,36 @@ export default function PrintSheet({ form, result, baseDate }: Props) {
   return (
     <div className="print-area hidden bg-white text-[11px] leading-snug text-gray-900 print:block">
       {/* 머리글 */}
-      <div className="flex items-start justify-between border-b-2 border-gray-900 pb-2">
+      <div className="flex items-end justify-between border-b-[2.5px] border-gray-900 pb-2.5">
         <div>
-          <h1 className="text-[18px] font-extrabold">창업감면 사전진단 결과서</h1>
-          <p className="mt-0.5 text-[10px] text-gray-500">세무·법인컨설팅 상담용 1차 판정 자료</p>
+          <div className="text-[10px] font-bold tracking-wide text-gray-500">
+            세무·법인컨설팅 상담용 사전진단
+          </div>
+          <h1 className="mt-0.5 text-[20px] font-extrabold tracking-tight">
+            창업감면 사전진단 결과서
+          </h1>
         </div>
         <div className="text-right text-[10px] text-gray-600">
-          <div>진단일: {today}</div>
+          <div>진단일</div>
+          <div className="text-[12px] font-bold text-gray-900">{today}</div>
         </div>
       </div>
 
-      {/* 종합 판정 + 한줄 결론 */}
-      <div className="mt-3 rounded border border-gray-300 px-3 py-2">
+      {/* 종합판정 + 한줄결론 (대표 박스) */}
+      <div
+        className="mt-3 rounded-md border-l-[6px] px-4 py-3"
+        style={{ borderColor: verdictColor, backgroundColor: '#f8fafc' }}
+      >
         <div className="flex items-center justify-between">
-          <span className="text-[10px] text-gray-500">종합 판정</span>
-          <span className="text-[15px] font-extrabold" style={{ color: verdictColor }}>
-            {VERDICT_LABEL[result.overall]}
+          <span className="text-[10px] font-bold text-gray-500">종합 판정</span>
+          <span className="text-[10px] font-bold text-gray-500">
+            상담 우선순위 {result.priority.grade}등급
           </span>
         </div>
-        <p className="mt-1 text-[11px] font-semibold text-gray-800">
-          → {result.oneLineConclusion}
-        </p>
+        <div className="mt-0.5 text-[18px] font-extrabold" style={{ color: verdictColor }}>
+          {VERDICT_LABEL[result.overall]}
+        </div>
+        <p className="mt-1 text-[12px] font-semibold text-gray-800">→ {result.oneLineConclusion}</p>
       </div>
 
       {/* 입력 요약 */}
@@ -72,27 +81,29 @@ export default function PrintSheet({ form, result, baseDate }: Props) {
         </tbody>
       </table>
 
-      {/* 판정 사유 */}
-      {result.reasons.length > 0 && (
-        <p className="mt-2 text-[10px] text-gray-700">
-          <b>판정 사유 · </b>
-          {result.reasons.join(' / ')}
-        </p>
-      )}
-
-      {/* 창업 제외사유 */}
-      {result.exclusionReasons.length > 0 && (
-        <div className="mt-3">
-          <SectionTitle>창업 제외사유 진단</SectionTitle>
-          {result.exclusionReasons.map((r) => (
-            <p key={r.title} className="mt-1 text-[10px] leading-relaxed text-gray-700">
-              <b>· {r.title}</b> — {r.detail}
-            </p>
-          ))}
+      {/* 2단 레이아웃: 예상 절세 포인트 / 확인 필요사항 */}
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <div>
+          <SectionTitle>예상 절세 포인트</SectionTitle>
+          <ul className="mt-1 space-y-0.5 text-[10px] leading-relaxed">
+            {result.savingsPoints.map((p, i) => (
+              <li key={i} style={{ color: p.tone === 'bad' ? '#dc2626' : '#15803d' }}>
+                ● {p.text}
+              </li>
+            ))}
+          </ul>
         </div>
-      )}
+        <div>
+          <SectionTitle>확인 필요사항</SectionTitle>
+          <ul className="mt-1 list-disc pl-4 text-[10px] leading-relaxed text-gray-700">
+            {result.keyChecks.map((c, i) => (
+              <li key={i}>{c}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
 
-      {/* 항목별 판정 (핵심 3항목) */}
+      {/* 항목별 판정 */}
       <div className="mt-3">
         <SectionTitle>항목별 감면 판정 (종합판정 기준)</SectionTitle>
         <table className="mt-1 w-full border-collapse text-[10px]">
@@ -121,33 +132,21 @@ export default function PrintSheet({ form, result, baseDate }: Props) {
           </tbody>
         </table>
         {result.registration && (
-          <p className="mt-1 text-[9px] text-gray-500">
-            ※ {result.registration.title}: {result.registration.note}
-          </p>
+          <p className="mt-1 text-[9px] text-gray-500">※ {result.registration.title}: {result.registration.note}</p>
         )}
       </div>
 
-      {/* 상담 핵심 질문 */}
-      {result.consultQuestions.length > 0 && (
-        <div className="mt-3">
-          <SectionTitle>상담 시 확인할 핵심 질문</SectionTitle>
-          <ul className="mt-1 list-disc pl-4 text-[10px] leading-relaxed text-gray-700">
-            {result.consultQuestions.map((q, i) => (
-              <li key={i}>{q}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* 전문가 상담 체크리스트 */}
-      {result.consultChecklist.length > 0 && (
-        <div className="mt-3">
-          <SectionTitle>전문가 상담 시 확인할 항목</SectionTitle>
-          <p className="mt-1 text-[10px] text-gray-700">
-            {result.consultChecklist.map((c) => `☐ ${c}`).join('   ')}
-          </p>
-        </div>
-      )}
+      {/* 상담 권장사항 */}
+      <div className="mt-3">
+        <SectionTitle>상담 권장사항</SectionTitle>
+        <p className="mt-1 text-[10px] font-semibold text-gray-800">
+          [{result.priority.grade}등급] {result.priority.label} — {result.priority.description}
+        </p>
+        <p className="mt-1 text-[10px] text-gray-700">
+          <b>전문가 검토 시 확인 가능한 항목 · </b>
+          {result.consultChecklist.map((c) => `✓ ${c}`).join('   ')}
+        </p>
+      </div>
 
       {/* 주의 문구 */}
       <p className="mt-4 border-t border-gray-300 pt-2 text-[9px] leading-relaxed text-gray-500">

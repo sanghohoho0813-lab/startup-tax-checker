@@ -1,4 +1,10 @@
-import type { FormData } from '../types'
+import type {
+  ConsultPriority,
+  FormData,
+  ItemResult,
+  SavingsPoint,
+  Verdict,
+} from '../types'
 
 // 결과 기반으로 상담 활용 콘텐츠를 생성한다.
 // - reasons: 판정 사유 (간단 불릿, 종합카드/카톡 공용)
@@ -133,6 +139,105 @@ export function buildConsultChecklist(form: FormData): string[] {
   out.push('취득세 감면 가능성 검토')
 
   return dedupe(out).slice(0, 5)
+}
+
+// ---------------------------------------------------------------------------
+// 예상 절세 포인트 — "검토받으면 돈을 아낄 수 있겠다"를 느끼게
+// (정확한 세액 계산이 아니라 검토 대상 여부만 표현)
+// ---------------------------------------------------------------------------
+const SAVINGS_SHORT: Record<string, string> = {
+  incomeTax: '법인세·소득세',
+  acquisitionTax: '취득세',
+  propertyTax: '재산세',
+}
+
+export function buildSavingsPoints(
+  coreItems: ItemResult[],
+  overall: Verdict,
+  recognition: Verdict,
+): SavingsPoint[] {
+  const points: SavingsPoint[] = []
+
+  // 창업 제외 가능성이 큰 경우 상단에 경고 한 줄
+  if (recognition === 'bad' || overall === 'bad') {
+    points.push({
+      tone: 'bad',
+      text: '창업 제외 가능성이 높아 세제혜택 적용이 어려울 수 있습니다.',
+    })
+  }
+
+  for (const item of coreItems) {
+    const short = SAVINGS_SHORT[item.key] ?? item.title
+    if (item.verdict === 'bad') {
+      points.push({ tone: 'bad', text: `${short} 감면 적용이 어려울 수 있습니다.` })
+    } else {
+      points.push({ tone: 'good', text: `${short} 감면 가능성 검토 대상` })
+    }
+  }
+
+  return points
+}
+
+// ---------------------------------------------------------------------------
+// 많은 대표님들이 놓치는 부분 — 결과별 자동 생성
+// ---------------------------------------------------------------------------
+export function buildMissedPoints(form: FormData, isYouth: boolean | null): string[] {
+  const out: string[] = []
+
+  out.push('업종코드에 따라 감면 적용 여부가 달라질 수 있습니다.')
+
+  if (form.overconcentration !== 'no') {
+    out.push('과밀억제권역 여부에 따라 결과가 크게 달라질 수 있습니다.')
+  }
+  if (form.startupForm === 'conversion') {
+    out.push('법인전환 구조에 따라 창업 인정 여부가 달라질 수 있습니다.')
+  }
+  if (
+    form.startupForm === 'acquisition' ||
+    form.startupForm === 'succession' ||
+    form.startupForm === 'reopen_same'
+  ) {
+    out.push('사업 양수·승계 구조에 따라 창업 인정 여부가 달라질 수 있습니다.')
+  }
+  out.push('사업장 주소(소재지)가 감면 판정에 중요할 수 있습니다.')
+  if (isYouth === false || isYouth === null) {
+    out.push('병역 이행 기간에 따라 청년 감면 대상 여부가 달라질 수 있습니다.')
+  }
+
+  return dedupe(out).slice(0, 5)
+}
+
+// ---------------------------------------------------------------------------
+// 상담 우선순위 (A/B/C/D) — 상담사가 연락 순서를 판단
+// ---------------------------------------------------------------------------
+export function buildPriority(overall: Verdict): ConsultPriority {
+  switch (overall) {
+    case 'good':
+      return {
+        grade: 'A',
+        label: '지금 바로 상담 연결 권장',
+        description: '확인만 하면 감면 적용 가능성이 높은 우선 상담 대상입니다.',
+      }
+    case 'caution':
+      return {
+        grade: 'B',
+        label: '우선 상담 권장',
+        description: '일부 항목만 확인하면 적용 여부가 분명해지는 케이스입니다.',
+      }
+    case 'conditional':
+      return {
+        grade: 'C',
+        label: '구조 검토 후 상담',
+        description: '창업 형태·권역 등 구조 검토가 선행되어야 하는 케이스입니다.',
+      }
+    case 'bad':
+    default:
+      return {
+        grade: 'D',
+        label: '감면 가능성 낮음',
+        description: '현재 정보 기준 감면 적용 가능성이 낮은 케이스입니다.',
+      }
+  }
 }
 
 function dedupe(arr: string[]): string[] {

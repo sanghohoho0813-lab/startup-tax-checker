@@ -1,4 +1,4 @@
-// 계약 유도 영역 — 절세 가능성 강조 + 전문가 상담 체크리스트
+// 계약 유도 영역 — 절세 가능성 강조 + 전문가 검토 시 확인 가능한 항목
 export default function ContractCta({ checklist }: { checklist: string[] }) {
   return (
     <div className="rounded-3xl border border-brand/30 bg-brand/5 p-6 shadow-card sm:p-7">
@@ -10,17 +10,17 @@ export default function ContractCta({ checklist }: { checklist: string[] }) {
         </p>
       </div>
 
-      {/* 체크리스트 */}
+      {/* 전문가 검토 시 확인 가능한 항목 (✓) */}
       <div className="mt-5">
-        <h3 className="text-lg font-bold text-gray-900">전문가 상담 시 확인할 항목</h3>
+        <h3 className="text-lg font-bold text-gray-900">전문가 검토 시 확인 가능한 항목</h3>
         <ul className="mt-3 space-y-2">
           {checklist.map((c) => (
             <li
               key={c}
               className="flex items-center gap-3 rounded-2xl bg-white p-4 text-lg font-medium text-gray-800"
             >
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 border-brand text-brand">
-                ☐
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand text-sm font-bold text-white">
+                ✓
               </span>
               <span>{c}</span>
             </li>

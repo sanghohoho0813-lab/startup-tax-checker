@@ -11,7 +11,10 @@ import {
   buildConsultChecklist,
   buildConsultQuestions,
   buildKeyChecks,
+  buildMissedPoints,
+  buildPriority,
   buildReasons,
+  buildSavingsPoints,
 } from './consult'
 
 // ---------------------------------------------------------------------------
@@ -304,6 +307,9 @@ export function judge(form: FormData, baseDate: Date = new Date()): JudgementRes
     oneLineConclusion: VERDICT_ONELINE[overall],
     reasons: buildReasons(form, isYouth),
     keyChecks: buildKeyChecks(form),
+    savingsPoints: buildSavingsPoints(coreItems, overall, recognition.verdict),
+    missedPoints: buildMissedPoints(form, isYouth),
+    priority: buildPriority(overall),
     isYouth,
     age,
     startupRecognition: recognition.verdict,

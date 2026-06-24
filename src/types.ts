@@ -81,12 +81,32 @@ export interface ExclusionReason {
   exception: string
 }
 
+// 예상 절세 포인트 한 줄 (정확 세액 계산 아님)
+export type SavingsTone = 'good' | 'bad' | 'neutral'
+export interface SavingsPoint {
+  tone: SavingsTone
+  text: string
+}
+
+// 상담 우선순위 등급
+export type PriorityGrade = 'A' | 'B' | 'C' | 'D'
+export interface ConsultPriority {
+  grade: PriorityGrade
+  label: string // 예: 지금 바로 상담 연결 권장
+  description: string // 등급 사유
+}
+
 // 종합 판정 결과
 export interface JudgementResult {
   overall: Verdict
   oneLineConclusion: string // 한줄 결론 (사장님용)
   reasons: string[] // 판정 사유 (간단 불릿)
   keyChecks: string[] // 주요 확인사항 (초기 화면 노출)
+
+  // 상담 전환용 advisory
+  savingsPoints: SavingsPoint[] // 예상 절세 포인트
+  missedPoints: string[] // 많은 대표님들이 놓치는 부분
+  priority: ConsultPriority // 상담 우선순위 (A/B/C/D)
 
   // 청년 분석
   isYouth: boolean | null
@@ -103,5 +123,5 @@ export interface JudgementResult {
 
   // 상담 활용
   consultQuestions: string[] // 상담 시 확인해야 할 핵심 질문
-  consultChecklist: string[] // 전문가 상담 시 확인할 항목 (계약 유도)
+  consultChecklist: string[] // 전문가 검토 시 확인 가능한 항목 (계약 유도)
 }
