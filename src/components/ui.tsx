@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { Option } from '../lib/options'
 
@@ -62,4 +63,35 @@ export function ChoiceGroup<T extends string>({
 // 작은 안내 문구
 export function HintText({ children }: { children: ReactNode }) {
   return <div className="mt-2.5 text-base leading-relaxed text-gray-400">{children}</div>
+}
+
+// 접이식(아코디언) — 상세 내용을 기본 닫힘 상태로 감춘다
+export function Accordion({
+  title,
+  defaultOpen = false,
+  children,
+}: {
+  title: string
+  defaultOpen?: boolean
+  children: ReactNode
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-card">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between gap-3 px-6 py-5 text-left"
+        aria-expanded={open}
+      >
+        <span className="text-xl font-bold text-gray-900">{title}</span>
+        <span
+          className={`text-2xl text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+        >
+          ▾
+        </span>
+      </button>
+      {open && <div className="border-t border-gray-100 p-4 sm:p-5">{children}</div>}
+    </div>
+  )
 }

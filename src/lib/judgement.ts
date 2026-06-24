@@ -1,23 +1,49 @@
-import type { FormData, ItemResult, JudgementResult, Verdict } from '../types'
+import type {
+  FormData,
+  ItemResult,
+  JudgementResult,
+  RegistrationReference,
+  Verdict,
+} from '../types'
 import { calcAge, isYouthAge } from './date'
-import { computeScore } from './score'
 import { diagnoseExclusion } from './exclusion'
+import {
+  buildConsultChecklist,
+  buildConsultQuestions,
+  buildKeyChecks,
+  buildReasons,
+} from './consult'
 
 // ---------------------------------------------------------------------------
-// 판정 상태 라벨 / 우선순위
+// 판정 상태 라벨 / 순위 / 한줄 결론
 // ---------------------------------------------------------------------------
 export const VERDICT_LABEL: Record<Verdict, string> = {
   good: '감면 가능성 높음',
   caution: '주의 필요',
+  conditional: '조건부 검토',
   bad: '불가 가능성 높음',
-  review: '전문가 확인 필요',
 }
 
-// 종합 판정 산출 시 "가장 보수적인" 상태를 고르기 위한 순위 (낮을수록 부정적)
+export const VERDICT_EMOJI: Record<Verdict, string> = {
+  good: '🟢',
+  caution: '🟡',
+  conditional: '🟠',
+  bad: '🔴',
+}
+
+// 한줄 결론 (사장님이 3초 안에 이해)
+export const VERDICT_ONELINE: Record<Verdict, string> = {
+  good: '창업감면 적용 가능성이 높아 보입니다.',
+  caution: '감면 가능성은 있으나 권역·업종 확인이 필요합니다.',
+  conditional: '일부 조건에 따라 결과가 달라질 수 있습니다.',
+  bad: '현재 정보 기준 창업감면 적용이 어려워 보입니다.',
+}
+
+// 긍정적일수록 높은 순위 (종합판정은 가장 보수적인 = 최저 순위 채택)
 const VERDICT_RANK: Record<Verdict, number> = {
   bad: 0,
-  caution: 1,
-  review: 2,
+  conditional: 1,
+  caution: 2,
   good: 3,
 }
 
@@ -25,15 +51,12 @@ export const DISCLAIMER =
   '본 결과는 상담용 1차 판정이며, 실제 감면 적용 여부는 조세특례제한법, 지방세특례제한법, 업종코드, 창업 형태, 과밀억제권역 여부, 지자체 해석에 따라 달라질 수 있습니다. 최종 적용 전 세무사 또는 관할 지자체 확인이 필요합니다.'
 
 // ---------------------------------------------------------------------------
-// A. 창업 인정 여부 판정
+// A. 창업 인정 여부 판정 (4단계)
 // ---------------------------------------------------------------------------
 function judgeStartupRecognition(form: FormData): { verdict: Verdict; note: string } {
   switch (form.startupForm) {
     case 'brand_new':
-      return {
-        verdict: 'good',
-        note: '완전 신규 창업으로 보여 창업 인정 가능성이 높습니다.',
-      }
+      return { verdict: 'good', note: '완전 신규 창업으로 보여 창업 인정 가능성이 높습니다.' }
     case 'conversion':
       return {
         verdict: 'caution',
@@ -56,18 +79,18 @@ function judgeStartupRecognition(form: FormData): { verdict: Verdict; note: stri
       }
     case 'unknown':
       return {
-        verdict: 'review',
-        note: '창업 형태가 불분명하여 세무사 검토가 필요합니다.',
+        verdict: 'conditional',
+        note: '창업 형태가 불분명하여 창업 인정 여부 확인이 필요합니다.',
       }
     default:
       return {
-        verdict: 'review',
+        verdict: 'conditional',
         note: '창업 형태를 선택하면 창업 인정 여부를 판단할 수 있습니다.',
       }
   }
 }
 
-// 창업 인정 가능성이 "낮은" 편인지 (caution/bad)
+// 창업 인정이 "약함"(부정적) 인지 — 양수/전환/승계 등
 function isRecognitionWeak(v: Verdict): boolean {
   return v === 'caution' || v === 'bad'
 }
@@ -75,11 +98,7 @@ function isRecognitionWeak(v: Verdict): boolean {
 // ---------------------------------------------------------------------------
 // C. 법인세 / 소득세 감면
 // ---------------------------------------------------------------------------
-function judgeIncomeTax(
-  form: FormData,
-  recognition: Verdict,
-  isYouth: boolean | null,
-): ItemResult {
+function judgeIncomeTax(form: FormData, recognition: Verdict, isYouth: boolean | null): ItemResult {
   const reasons: string[] = []
   const checkPoints: string[] = [
     '창업 지역·업종·과밀억제권역 여부에 따라 감면율(50%~100%)이 달라집니다.',
@@ -109,6 +128,11 @@ function judgeIncomeTax(
     reasons.push('창업 형태(전환·양수·승계 등)에 따라 적용이 제한될 수 있습니다.')
     consultScript =
       '이 케이스는 신규창업이라기보다 법인전환·사업승계로 볼 여지가 있어 창업감면 적용이 제한될 수 있습니다.'
+  } else if (recognition === 'conditional') {
+    verdict = 'conditional'
+    reasons.push('창업 형태가 확인되어야 감면 적용 여부를 판단할 수 있습니다.')
+    reasons.push('신규 창업으로 확인되면 감면 가능성이 높아집니다.')
+    consultScript = '창업 형태(신규/전환/양수)를 먼저 확인하면 감면 가능 여부가 분명해집니다.'
   } else if (isYouth === true && !inOverconcentration) {
     verdict = 'good'
     reasons.push('청년 창업 + 수도권 과밀억제권역 외 지역으로 유리한 조건입니다.')
@@ -133,18 +157,9 @@ function judgeIncomeTax(
       '대표님 케이스는 창업감면 가능성이 있어 보이지만, 과밀억제권역 여부와 업종 코드 확인이 먼저 필요합니다.'
   }
 
-  reasons.push(
-    '정확한 감면율은 창업지역, 업종, 과밀억제권역, 최초 소득 발생연도에 따라 달라집니다.',
-  )
+  reasons.push('정확한 감면율은 창업지역, 업종, 과밀억제권역, 최초 소득 발생연도에 따라 달라집니다.')
 
-  return {
-    key: 'incomeTax',
-    title: '법인세 / 소득세 감면',
-    verdict,
-    reasons,
-    checkPoints,
-    consultScript,
-  }
+  return { key: 'incomeTax', title: '법인세 / 소득세 감면', verdict, reasons, checkPoints, consultScript }
 }
 
 // ---------------------------------------------------------------------------
@@ -167,6 +182,11 @@ function judgeAcquisitionTax(form: FormData, recognition: Verdict): ItemResult {
     reasons.push('창업 인정 여부가 불확실하여 취득세 감면 적용이 어려울 수 있습니다.')
     reasons.push('창업으로 인정되지 않으면 취득세 감면 대상에서 제외될 수 있습니다.')
     consultScript = '창업 인정 여부가 불확실해 취득세 감면은 보수적으로 보는 것이 안전합니다.'
+  } else if (recognition === 'conditional') {
+    verdict = 'conditional'
+    reasons.push('창업 인정 여부와 사업용 부동산 취득 계획이 확인되어야 판단할 수 있습니다.')
+    reasons.push('신규 창업 + 사업용 직접 사용이면 감면 가능성이 생깁니다.')
+    consultScript = '취득세는 창업 인정 여부와 사업용 부동산 취득 계획 확인 후 판단이 가능합니다.'
   } else if (inOverconcentration) {
     verdict = 'caution'
     reasons.push('수도권 과밀억제권역으로 취득세 감면이 제한되거나 불리할 수 있습니다.')
@@ -180,20 +200,13 @@ function judgeAcquisitionTax(form: FormData, recognition: Verdict): ItemResult {
     consultScript =
       '비과밀억제권역이라 사업용 부동산 취득세 감면 가능성이 있어 보입니다. 사업용 사용 여부를 확인해 주세요.'
   } else {
-    verdict = 'review'
+    verdict = 'conditional'
     reasons.push('과밀억제권역 여부가 불분명하여 취득세 감면 판단이 어렵습니다.')
     reasons.push('권역 여부에 따라 결과가 크게 달라집니다.')
     consultScript = '과밀억제권역 여부가 확인되어야 취득세 감면 판단이 가능합니다.'
   }
 
-  return {
-    key: 'acquisitionTax',
-    title: '취득세 감면',
-    verdict,
-    reasons,
-    checkPoints,
-    consultScript,
-  }
+  return { key: 'acquisitionTax', title: '취득세 감면', verdict, reasons, checkPoints, consultScript }
 }
 
 // ---------------------------------------------------------------------------
@@ -215,9 +228,9 @@ function judgePropertyTax(recognition: Verdict): ItemResult {
     reasons.push('사업용 직접 사용 부동산이 아니라면 감면이 어렵습니다.')
     consultScript =
       '재산세 감면은 창업 인정과 사업용 직접 사용이 전제이므로, 두 가지를 먼저 확인해 주세요.'
-  } else if (recognition === 'review') {
-    verdict = 'review'
-    reasons.push('창업 형태가 불분명하여 재산세 감면 판단에 검토가 필요합니다.')
+  } else if (recognition === 'conditional') {
+    verdict = 'conditional'
+    reasons.push('창업 형태가 확인되어야 재산세 감면 판단이 가능합니다.')
     reasons.push('사업용 직접 사용 여부도 함께 확인되어야 합니다.')
     consultScript = '재산세 감면은 창업 인정 여부와 부동산 사용 형태 확인 후 판단이 가능합니다.'
   } else {
@@ -228,45 +241,28 @@ function judgePropertyTax(recognition: Verdict): ItemResult {
       '사업장으로 직접 사용하는 부동산이라면 재산세 감면 가능성이 있습니다. 임대·투자용이면 달라집니다.'
   }
 
-  return {
-    key: 'propertyTax',
-    title: '재산세 감면',
-    verdict,
-    reasons,
-    checkPoints,
-    consultScript,
-  }
+  return { key: 'propertyTax', title: '재산세 감면', verdict, reasons, checkPoints, consultScript }
 }
 
 // ---------------------------------------------------------------------------
-// F. 등록면허세 감면
+// F. 등록면허세 — 종합판정 제외, 별도 참고
 // ---------------------------------------------------------------------------
-function judgeRegistrationTax(form: FormData): ItemResult {
-  const reasons: string[] = [
-    '법인설립 등기 관련 등록면허세 감면은 개정·일몰(적용기한) 여부 확인이 특히 중요합니다.',
-    '과밀억제권역 내 법인설립 등기는 등록면허세가 중과될 수 있습니다.',
-  ]
+function buildRegistrationReference(form: FormData): RegistrationReference {
   const checkPoints: string[] = [
-    '현재 시점의 지방세특례제한법 개정·일몰 여부를 확인해야 합니다.',
+    '현재 시점의 지방세특례제한법 개정·일몰(적용기한) 여부를 확인해야 합니다.',
     '관할 지자체의 해석 및 적용기한을 직접 확인하는 것이 안전합니다.',
     '법인 설립 등기 시점과 과밀억제권역 중과 여부를 확인해야 합니다.',
   ]
+  let note =
+    '법인설립 등기 관련 등록면허세 감면은 개정·적용기한에 민감해 단정하기 어렵습니다. 세무사 또는 관할 지자체 확인이 필요합니다.'
 
   if (form.businessType === 'individual') {
-    reasons.push('개인사업자는 법인설립 등기 관련 등록면허세 감면과 직접 관련이 적을 수 있습니다.')
+    note += ' (개인사업자는 법인설립 등기 감면과 직접 관련이 적을 수 있습니다.)'
   } else if (form.overconcentration === 'yes') {
-    reasons.push('수도권 과밀억제권역이라 설립 등기 등록면허세 중과 가능성도 함께 확인해야 합니다.')
+    note += ' (과밀억제권역 내 설립 등기는 등록면허세 중과 가능성도 함께 확인해야 합니다.)'
   }
 
-  return {
-    key: 'registrationTax',
-    title: '등록면허세 감면',
-    verdict: 'review',
-    reasons,
-    checkPoints,
-    consultScript:
-      '등록면허세 감면은 개정·적용기한에 민감해 단정하기 어렵습니다. 세무사 또는 지자체 확인이 필요합니다.',
-  }
+  return { title: '등록면허세 (참고)', note, checkPoints }
 }
 
 // ---------------------------------------------------------------------------
@@ -276,79 +272,46 @@ export function judge(form: FormData, baseDate: Date = new Date()): JudgementRes
   const age = calcAge(form.birthDate, baseDate)
   const isYouth = isYouthAge(age)
   const recognition = judgeStartupRecognition(form)
-  const { score, factors } = computeScore({ form, isYouth })
-  const exclusionReasons = diagnoseExclusion(form)
 
-  // 사용자가 체크한 항목만 판정 (미선택 시 전체)
   const checked = form.checkItems
   const anyChecked =
     checked.incomeTax || checked.acquisitionTax || checked.propertyTax || checked.registrationTax
 
-  const allItems: ItemResult[] = [
+  // 핵심 항목 (종합판정 대상): 법인세 / 취득세 / 재산세
+  const allCore: ItemResult[] = [
     judgeIncomeTax(form, recognition.verdict, isYouth),
     judgeAcquisitionTax(form, recognition.verdict),
     judgePropertyTax(recognition.verdict),
-    judgeRegistrationTax(form),
   ]
+  const coreItems = allCore.filter((item) => !anyChecked || checked[item.key])
 
-  const items = allItems.filter((item) => !anyChecked || checked[item.key])
+  // 등록면허세 참고 (선택 시 또는 전체일 때 표시)
+  const showRegistration = !anyChecked || checked.registrationTax
+  const registration = showRegistration ? buildRegistrationReference(form) : null
 
-  // 종합 판정: 표시 항목 중 가장 보수적인 상태
+  // 종합판정: 핵심 항목(등록면허세 제외) 중 가장 보수적인 상태
   let overall: Verdict = 'good'
-  for (const item of items) {
-    if (VERDICT_RANK[item.verdict] < VERDICT_RANK[overall]) {
-      overall = item.verdict
+  if (coreItems.length === 0) {
+    overall = 'conditional'
+  } else {
+    for (const item of coreItems) {
+      if (VERDICT_RANK[item.verdict] < VERDICT_RANK[overall]) overall = item.verdict
     }
   }
-  if (items.length === 0) overall = 'review'
-
-  const overallSummary = buildOverallSummary(overall, recognition.verdict, isYouth, score)
 
   return {
     overall,
-    overallSummary,
-    score,
-    scoreFactors: factors,
+    oneLineConclusion: VERDICT_ONELINE[overall],
+    reasons: buildReasons(form, isYouth),
+    keyChecks: buildKeyChecks(form),
     isYouth,
     age,
     startupRecognition: recognition.verdict,
     startupRecognitionNote: recognition.note,
-    exclusionReasons,
-    items,
+    exclusionReasons: diagnoseExclusion(form),
+    coreItems,
+    registration,
+    consultQuestions: buildConsultQuestions(form, isYouth),
+    consultChecklist: buildConsultChecklist(form),
   }
-}
-
-function buildOverallSummary(
-  overall: Verdict,
-  recognition: Verdict,
-  isYouth: boolean | null,
-  score: number,
-): string {
-  const parts: string[] = []
-
-  parts.push(`감면 가능성 점수는 100점 만점에 ${score}점입니다.`)
-
-  if (isYouth === true) parts.push('청년 창업 요건(만 15~34세)에 해당할 수 있습니다.')
-  else if (isYouth === false) parts.push('연령 기준상 청년 창업 요건에는 해당하지 않습니다.')
-
-  switch (overall) {
-    case 'good':
-      parts.push('전반적으로 창업감면 가능성이 있어 추가 확인을 권장합니다.')
-      break
-    case 'caution':
-      parts.push('적용에 제약이 될 수 있는 요소가 있어 주의가 필요합니다.')
-      break
-    case 'bad':
-      parts.push('현재 정보로는 감면 적용이 어려울 가능성이 높습니다.')
-      break
-    case 'review':
-      parts.push('정보가 부족하거나 단정하기 어려워 전문가 확인이 필요합니다.')
-      break
-  }
-
-  if (recognition === 'review') {
-    parts.push('특히 창업 형태가 불분명해 창업 인정 여부 확인이 우선입니다.')
-  }
-
-  return parts.join(' ')
 }

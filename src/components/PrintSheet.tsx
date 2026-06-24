@@ -1,5 +1,6 @@
 import type { FormData, JudgementResult } from '../types'
 import { VERDICT_LABEL } from '../lib/judgement'
+import { VERDICT_PRINT_COLOR } from '../lib/verdictStyle'
 import { LABEL, labelOf } from '../lib/options'
 import { formatDate, formatKoreanDate } from '../lib/date'
 
@@ -11,7 +12,6 @@ interface Props {
 
 // A4 1페이지 「창업감면 사전진단 결과서」
 // 화면에서는 숨기고(hidden) 인쇄 시에만 표시(print:block)된다.
-// 인쇄 색상이 유지되도록 명시적 색상과 print-color-adjust를 사용한다.
 export default function PrintSheet({ form, result, baseDate }: Props) {
   const today = formatDate(baseDate)
   const verdictColor = VERDICT_PRINT_COLOR[result.overall]
@@ -22,13 +22,24 @@ export default function PrintSheet({ form, result, baseDate }: Props) {
       <div className="flex items-start justify-between border-b-2 border-gray-900 pb-2">
         <div>
           <h1 className="text-[18px] font-extrabold">창업감면 사전진단 결과서</h1>
-          <p className="mt-0.5 text-[10px] text-gray-500">
-            세무·법인컨설팅 상담용 1차 판정 자료
-          </p>
+          <p className="mt-0.5 text-[10px] text-gray-500">세무·법인컨설팅 상담용 1차 판정 자료</p>
         </div>
         <div className="text-right text-[10px] text-gray-600">
           <div>진단일: {today}</div>
         </div>
+      </div>
+
+      {/* 종합 판정 + 한줄 결론 */}
+      <div className="mt-3 rounded border border-gray-300 px-3 py-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] text-gray-500">종합 판정</span>
+          <span className="text-[15px] font-extrabold" style={{ color: verdictColor }}>
+            {VERDICT_LABEL[result.overall]}
+          </span>
+        </div>
+        <p className="mt-1 text-[11px] font-semibold text-gray-800">
+          → {result.oneLineConclusion}
+        </p>
       </div>
 
       {/* 입력 요약 */}
@@ -61,22 +72,13 @@ export default function PrintSheet({ form, result, baseDate }: Props) {
         </tbody>
       </table>
 
-      {/* 종합 판정 */}
-      <div className="mt-3 flex items-center justify-between rounded border border-gray-300 px-3 py-2">
-        <div>
-          <span className="text-[10px] text-gray-500">종합 판정</span>
-          <div className="text-[15px] font-extrabold" style={{ color: verdictColor }}>
-            {VERDICT_LABEL[result.overall]}
-          </div>
-        </div>
-        <div className="text-right">
-          <span className="text-[10px] text-gray-500">감면 가능성 점수</span>
-          <div className="text-[15px] font-extrabold" style={{ color: verdictColor }}>
-            {result.score} / 100점
-          </div>
-        </div>
-      </div>
-      <p className="mt-1.5 text-[10px] leading-relaxed text-gray-700">{result.overallSummary}</p>
+      {/* 판정 사유 */}
+      {result.reasons.length > 0 && (
+        <p className="mt-2 text-[10px] text-gray-700">
+          <b>판정 사유 · </b>
+          {result.reasons.join(' / ')}
+        </p>
+      )}
 
       {/* 창업 제외사유 */}
       {result.exclusionReasons.length > 0 && (
@@ -90,9 +92,9 @@ export default function PrintSheet({ form, result, baseDate }: Props) {
         </div>
       )}
 
-      {/* 항목별 판정 */}
+      {/* 항목별 판정 (핵심 3항목) */}
       <div className="mt-3">
-        <SectionTitle>항목별 감면 판정</SectionTitle>
+        <SectionTitle>항목별 감면 판정 (종합판정 기준)</SectionTitle>
         <table className="mt-1 w-full border-collapse text-[10px]">
           <thead>
             <tr className="bg-gray-100">
@@ -102,7 +104,7 @@ export default function PrintSheet({ form, result, baseDate }: Props) {
             </tr>
           </thead>
           <tbody>
-            {result.items.map((item) => (
+            {result.coreItems.map((item) => (
               <tr key={item.key}>
                 <td className="border border-gray-300 px-2 py-1 font-semibold">{item.title}</td>
                 <td
@@ -118,17 +120,34 @@ export default function PrintSheet({ form, result, baseDate }: Props) {
             ))}
           </tbody>
         </table>
+        {result.registration && (
+          <p className="mt-1 text-[9px] text-gray-500">
+            ※ {result.registration.title}: {result.registration.note}
+          </p>
+        )}
       </div>
 
-      {/* 추가 확인사항 */}
-      <div className="mt-3">
-        <SectionTitle>추가 확인 필요사항</SectionTitle>
-        <ul className="mt-1 list-disc pl-4 text-[10px] leading-relaxed text-gray-700">
-          {collectCheckPoints(result).map((c, i) => (
-            <li key={i}>{c}</li>
-          ))}
-        </ul>
-      </div>
+      {/* 상담 핵심 질문 */}
+      {result.consultQuestions.length > 0 && (
+        <div className="mt-3">
+          <SectionTitle>상담 시 확인할 핵심 질문</SectionTitle>
+          <ul className="mt-1 list-disc pl-4 text-[10px] leading-relaxed text-gray-700">
+            {result.consultQuestions.map((q, i) => (
+              <li key={i}>{q}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* 전문가 상담 체크리스트 */}
+      {result.consultChecklist.length > 0 && (
+        <div className="mt-3">
+          <SectionTitle>전문가 상담 시 확인할 항목</SectionTitle>
+          <p className="mt-1 text-[10px] text-gray-700">
+            {result.consultChecklist.map((c) => `☐ ${c}`).join('   ')}
+          </p>
+        </div>
+      )}
 
       {/* 주의 문구 */}
       <p className="mt-4 border-t border-gray-300 pt-2 text-[9px] leading-relaxed text-gray-500">
@@ -138,13 +157,6 @@ export default function PrintSheet({ form, result, baseDate }: Props) {
       </p>
     </div>
   )
-}
-
-const VERDICT_PRINT_COLOR: Record<string, string> = {
-  good: '#16a34a',
-  caution: '#d97706',
-  bad: '#dc2626',
-  review: '#4b5563',
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -166,18 +178,4 @@ function Row({ cells }: { cells: [string, string][] }) {
       ))}
     </tr>
   )
-}
-
-function collectCheckPoints(result: JudgementResult): string[] {
-  const seen = new Set<string>()
-  const out: string[] = []
-  for (const item of result.items) {
-    for (const c of item.checkPoints) {
-      if (!seen.has(c)) {
-        seen.add(c)
-        out.push(c)
-      }
-    }
-  }
-  return out.slice(0, 8)
 }

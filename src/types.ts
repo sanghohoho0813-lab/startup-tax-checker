@@ -51,9 +51,13 @@ export interface FormData {
 // ===========================================================================
 
 // 판정 상태 (4단계)
-export type Verdict = 'good' | 'caution' | 'bad' | 'review'
+//  good        🟢 감면 가능성 높음
+//  caution     🟡 주의 필요
+//  conditional 🟠 조건부 검토
+//  bad         🔴 불가 가능성 높음
+export type Verdict = 'good' | 'caution' | 'conditional' | 'bad'
 
-// 개별 항목 판정 결과
+// 핵심 감면 항목 판정 결과 (법인세/소득세, 취득세, 재산세)
 export interface ItemResult {
   key: ExemptionKey
   title: string
@@ -63,41 +67,41 @@ export interface ItemResult {
   consultScript: string // 상담 멘트 예시
 }
 
-// 감면 가능성 점수 산정 근거 한 줄
-export interface ScoreFactor {
-  label: string // 항목명 (예: 창업 인정)
-  points: number // 획득 점수
-  max: number // 만점
-  note: string // 근거 설명
+// 등록면허세 — 종합판정에서 제외, 별도 참고 영역으로만 표시
+export interface RegistrationReference {
+  title: string
+  note: string
+  checkPoints: string[]
 }
 
 // 창업 제외사유 진단 항목
 export interface ExclusionReason {
-  title: string // 제외사유 유형
-  detail: string // 구체 설명
-  exception: string // 예외/검토 포인트
+  title: string
+  detail: string
+  exception: string
 }
 
 // 종합 판정 결과
 export interface JudgementResult {
   overall: Verdict
-  overallSummary: string
-
-  // 감면 가능성 점수 (0~100)
-  score: number
-  scoreFactors: ScoreFactor[]
+  oneLineConclusion: string // 한줄 결론 (사장님용)
+  reasons: string[] // 판정 사유 (간단 불릿)
+  keyChecks: string[] // 주요 확인사항 (초기 화면 노출)
 
   // 청년 분석
-  isYouth: boolean | null // 청년 여부 (생년월일 미입력 시 null)
-  age: number | null // 만 나이
+  isYouth: boolean | null
+  age: number | null
 
   // 창업 인정 분석
   startupRecognition: Verdict
   startupRecognitionNote: string
-
-  // 창업 제외사유 진단 (해당 시)
   exclusionReasons: ExclusionReason[]
 
-  // 항목별 판정
-  items: ItemResult[]
+  // 핵심 항목 (종합판정 대상) + 등록면허세 참고
+  coreItems: ItemResult[]
+  registration: RegistrationReference | null
+
+  // 상담 활용
+  consultQuestions: string[] // 상담 시 확인해야 할 핵심 질문
+  consultChecklist: string[] // 전문가 상담 시 확인할 항목 (계약 유도)
 }

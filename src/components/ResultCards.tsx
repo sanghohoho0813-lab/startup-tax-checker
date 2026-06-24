@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import type { JudgementResult } from '../types'
 import { DISCLAIMER } from '../lib/judgement'
+import { Accordion } from './ui'
 import OverallCard from './OverallCard'
-import ScoreCard from './ScoreCard'
+import ConsultCard from './ConsultCard'
+import ContractCta from './ContractCta'
 import ExclusionCard from './ExclusionCard'
 import ItemCard from './ItemCard'
+import RegistrationReference from './RegistrationReference'
 
 interface Props {
   result: JudgementResult
@@ -33,11 +36,10 @@ export default function ResultCards({ result, summaryText, onBack, onPrint }: Pr
 
   return (
     <div className="flex flex-col gap-4">
+      {/* 1) 초기 노출: 종합판정 + 한줄결론 + 주요 확인사항 */}
       <OverallCard result={result} />
-      <ScoreCard score={result.score} factors={result.scoreFactors} />
-      <ExclusionCard reasons={result.exclusionReasons} />
 
-      {/* 액션 */}
+      {/* 액션 버튼 */}
       <div className="flex flex-wrap gap-3">
         <button
           type="button"
@@ -62,22 +64,34 @@ export default function ResultCards({ result, summaryText, onBack, onPrint }: Pr
         </button>
       </div>
 
-      {/* 항목별 카드 */}
-      <div className="flex flex-col gap-3">
-        {result.items.map((item) => (
-          <ItemCard key={item.key} item={item} />
-        ))}
-      </div>
+      {/* 2) 상담 핵심 질문 (컨설턴트용) */}
+      <ConsultCard questions={result.consultQuestions} />
 
-      {/* 카카오톡/문자용 요약 미리보기 */}
-      <details className="rounded-3xl border border-gray-100 bg-white p-6 shadow-card">
-        <summary className="cursor-pointer text-lg font-bold text-gray-800">
-          카카오톡/문자 전송용 요약문 보기
-        </summary>
-        <pre className="mt-3 whitespace-pre-wrap break-words rounded-2xl bg-gray-50 p-4 text-base leading-relaxed text-gray-700">
-          {summaryText}
-        </pre>
-      </details>
+      {/* 3) 상세보기 — 기본 닫힘 아코디언 */}
+      <Accordion title="상세보기 (항목별 판정)">
+        <div className="flex flex-col gap-3">
+          {result.coreItems.map((item) => (
+            <ItemCard key={item.key} item={item} />
+          ))}
+
+          {result.registration && <RegistrationReference data={result.registration} />}
+
+          <ExclusionCard reasons={result.exclusionReasons} />
+
+          {/* 카카오톡 요약 미리보기 */}
+          <details className="rounded-3xl border border-gray-100 bg-white p-6 shadow-card">
+            <summary className="cursor-pointer text-lg font-bold text-gray-800">
+              카카오톡 전송용 요약문 보기
+            </summary>
+            <pre className="mt-3 whitespace-pre-wrap break-words rounded-2xl bg-gray-50 p-4 text-base leading-relaxed text-gray-700">
+              {summaryText}
+            </pre>
+          </details>
+        </div>
+      </Accordion>
+
+      {/* 4) 계약 유도 CTA */}
+      <ContractCta checklist={result.consultChecklist} />
 
       {/* 주의 문구 */}
       <div className="rounded-3xl border border-gray-200 bg-gray-50 p-6">

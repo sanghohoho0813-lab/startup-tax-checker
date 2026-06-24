@@ -38,8 +38,8 @@ export default function App() {
     [submitted, form, baseDate],
   )
   const summaryText = useMemo(
-    () => (submitted && result ? buildSummaryText(form, result, baseDate) : ''),
-    [submitted, result, form, baseDate],
+    () => (submitted && result ? buildSummaryText(result) : ''),
+    [submitted, result],
   )
 
   const handleSubmit = () => {

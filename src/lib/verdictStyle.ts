@@ -24,6 +24,13 @@ export const VERDICT_STYLE: Record<Verdict, VerdictStyle> = {
     chipBg: 'bg-amber-500',
     emoji: '🟡',
   },
+  conditional: {
+    bg: 'bg-orange-50',
+    border: 'border-orange-200',
+    text: 'text-orange-700',
+    chipBg: 'bg-orange-500',
+    emoji: '🟠',
+  },
   bad: {
     bg: 'bg-red-50',
     border: 'border-red-200',
@@ -31,18 +38,21 @@ export const VERDICT_STYLE: Record<Verdict, VerdictStyle> = {
     chipBg: 'bg-red-600',
     emoji: '🔴',
   },
-  review: {
-    bg: 'bg-gray-50',
-    border: 'border-gray-200',
-    text: 'text-gray-700',
-    chipBg: 'bg-gray-500',
-    emoji: '⚪',
-  },
 }
 
-// 점수 도넛/바 색상
-export function scoreColor(score: number): string {
-  if (score >= 70) return '#16a34a' // green-600
-  if (score >= 45) return '#f59e0b' // amber-500
-  return '#dc2626' // red-600
+// 등록면허세 등 "참고" 영역용 중립(회색) 스타일
+export const REFERENCE_STYLE = {
+  bg: 'bg-gray-50',
+  border: 'border-gray-200',
+  text: 'text-gray-600',
+  chipBg: 'bg-gray-500',
+  emoji: '⚪',
+}
+
+// 인쇄(PDF)용 판정 색상
+export const VERDICT_PRINT_COLOR: Record<Verdict, string> = {
+  good: '#16a34a',
+  caution: '#d97706',
+  conditional: '#ea580c',
+  bad: '#dc2626',
 }
