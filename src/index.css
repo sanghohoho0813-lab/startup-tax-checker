@@ -2,7 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 전체 글자 크기 확대: 루트 폰트 20px (기본 16px 대비 +25%)
+   → rem 기반 Tailwind 유틸리티가 모두 비례 확대된다. */
 html {
+  font-size: 20px;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -13,7 +16,31 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* date input이 모바일에서 너무 작게 보이지 않도록 */
-input[type='date'] {
-  min-height: 1.5rem;
+/* select 기본 화살표 제거 (커스텀 caret 사용) */
+select {
+  background-image: none;
+}
+
+/* ===========================================================================
+   인쇄(PDF) 설정: A4 1페이지 결과서
+   =========================================================================== */
+@page {
+  size: A4 portrait;
+  margin: 14mm;
+}
+
+@media print {
+  html {
+    font-size: 12pt;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  /* 인쇄 영역의 배경/글자색 유지 */
+  .print-area {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }

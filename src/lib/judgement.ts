@@ -1,36 +1,19 @@
-import type {
-  FormData,
-  ItemResult,
-  JudgementResult,
-  Verdict,
-} from '../types'
+import type { FormData, ItemResult, JudgementResult, Verdict } from '../types'
+import { calcAge, isYouthAge } from './date'
+import { computeScore } from './score'
+import { diagnoseExclusion } from './exclusion'
 
 // ---------------------------------------------------------------------------
-// 유틸: 만 나이 계산
+// 판정 상태 라벨 / 우선순위
 // ---------------------------------------------------------------------------
-export function calcAge(birthDate: string, baseDate: Date = new Date()): number | null {
-  if (!birthDate) return null
-  const birth = new Date(birthDate)
-  if (Number.isNaN(birth.getTime())) return null
-
-  let age = baseDate.getFullYear() - birth.getFullYear()
-  const monthDiff = baseDate.getMonth() - birth.getMonth()
-  if (monthDiff < 0 || (monthDiff === 0 && baseDate.getDate() < birth.getDate())) {
-    age -= 1
-  }
-  return age
+export const VERDICT_LABEL: Record<Verdict, string> = {
+  good: '감면 가능성 높음',
+  caution: '주의 필요',
+  bad: '불가 가능성 높음',
+  review: '전문가 확인 필요',
 }
 
-// 청년 여부: 만 15세 이상 34세 이하 (병역기간 미반영)
-export function isYouthAge(age: number | null): boolean | null {
-  if (age === null) return null
-  return age >= 15 && age <= 34
-}
-
-// ---------------------------------------------------------------------------
-// 판정 상태 비교용 우선순위 (낮을수록 부정적)
-// 종합 판정을 산출할 때 "가장 보수적인" 상태를 고르기 위해 사용
-// ---------------------------------------------------------------------------
+// 종합 판정 산출 시 "가장 보수적인" 상태를 고르기 위한 순위 (낮을수록 부정적)
 const VERDICT_RANK: Record<Verdict, number> = {
   bad: 0,
   caution: 1,
@@ -38,12 +21,8 @@ const VERDICT_RANK: Record<Verdict, number> = {
   good: 3,
 }
 
-export const VERDICT_LABEL: Record<Verdict, string> = {
-  good: '감면 가능성 높음',
-  caution: '주의 필요',
-  bad: '불가 가능성 높음',
-  review: '전문가 확인 필요',
-}
+export const DISCLAIMER =
+  '본 결과는 상담용 1차 판정이며, 실제 감면 적용 여부는 조세특례제한법, 지방세특례제한법, 업종코드, 창업 형태, 과밀억제권역 여부, 지자체 해석에 따라 달라질 수 있습니다. 최종 적용 전 세무사 또는 관할 지자체 확인이 필요합니다.'
 
 // ---------------------------------------------------------------------------
 // A. 창업 인정 여부 판정
@@ -88,7 +67,7 @@ function judgeStartupRecognition(form: FormData): { verdict: Verdict; note: stri
   }
 }
 
-// 창업 인정 가능성이 "낮은" 편인지 (caution/bad) 여부
+// 창업 인정 가능성이 "낮은" 편인지 (caution/bad)
 function isRecognitionWeak(v: Verdict): boolean {
   return v === 'caution' || v === 'bad'
 }
@@ -187,8 +166,7 @@ function judgeAcquisitionTax(form: FormData, recognition: Verdict): ItemResult {
     verdict = 'bad'
     reasons.push('창업 인정 여부가 불확실하여 취득세 감면 적용이 어려울 수 있습니다.')
     reasons.push('창업으로 인정되지 않으면 취득세 감면 대상에서 제외될 수 있습니다.')
-    consultScript =
-      '창업 인정 여부가 불확실해 취득세 감면은 보수적으로 보는 것이 안전합니다.'
+    consultScript = '창업 인정 여부가 불확실해 취득세 감면은 보수적으로 보는 것이 안전합니다.'
   } else if (inOverconcentration) {
     verdict = 'caution'
     reasons.push('수도권 과밀억제권역으로 취득세 감면이 제한되거나 불리할 수 있습니다.')
@@ -205,8 +183,7 @@ function judgeAcquisitionTax(form: FormData, recognition: Verdict): ItemResult {
     verdict = 'review'
     reasons.push('과밀억제권역 여부가 불분명하여 취득세 감면 판단이 어렵습니다.')
     reasons.push('권역 여부에 따라 결과가 크게 달라집니다.')
-    consultScript =
-      '과밀억제권역 여부가 확인되어야 취득세 감면 판단이 가능합니다.'
+    consultScript = '과밀억제권역 여부가 확인되어야 취득세 감면 판단이 가능합니다.'
   }
 
   return {
@@ -227,7 +204,7 @@ function judgePropertyTax(recognition: Verdict): ItemResult {
   const checkPoints: string[] = [
     '해당 부동산을 사업에 직접 사용하는지(자가 사용) 확인이 필요합니다.',
     '단순 투자용·임대용 부동산은 감면 대상에서 제외될 수 있습니다.',
-    '재산세 감면은 본 MVP에서 별도 입력을 받지 않으므로 안내 위주로 참고해 주세요.',
+    '재산세 감면은 본 진단에서 별도 입력을 받지 않으므로 안내 위주로 참고해 주세요.',
   ]
   let verdict: Verdict
   let consultScript: string
@@ -242,8 +219,7 @@ function judgePropertyTax(recognition: Verdict): ItemResult {
     verdict = 'review'
     reasons.push('창업 형태가 불분명하여 재산세 감면 판단에 검토가 필요합니다.')
     reasons.push('사업용 직접 사용 여부도 함께 확인되어야 합니다.')
-    consultScript =
-      '재산세 감면은 창업 인정 여부와 부동산 사용 형태 확인 후 판단이 가능합니다.'
+    consultScript = '재산세 감면은 창업 인정 여부와 부동산 사용 형태 확인 후 판단이 가능합니다.'
   } else {
     verdict = 'good'
     reasons.push('창업 인정 가능성이 있고 사업용 직접 사용 부동산이면 감면 가능성이 있습니다.')
@@ -300,8 +276,10 @@ export function judge(form: FormData, baseDate: Date = new Date()): JudgementRes
   const age = calcAge(form.birthDate, baseDate)
   const isYouth = isYouthAge(age)
   const recognition = judgeStartupRecognition(form)
+  const { score, factors } = computeScore({ form, isYouth })
+  const exclusionReasons = diagnoseExclusion(form)
 
-  // 사용자가 체크한 항목만 판정 (체크 안 했으면 전체로 간주)
+  // 사용자가 체크한 항목만 판정 (미선택 시 전체)
   const checked = form.checkItems
   const anyChecked =
     checked.incomeTax || checked.acquisitionTax || checked.propertyTax || checked.registrationTax
@@ -313,30 +291,29 @@ export function judge(form: FormData, baseDate: Date = new Date()): JudgementRes
     judgeRegistrationTax(form),
   ]
 
-  const items = allItems.filter((item) => {
-    if (!anyChecked) return true
-    return checked[item.key]
-  })
+  const items = allItems.filter((item) => !anyChecked || checked[item.key])
 
-  // 종합 판정: 표시된 항목들 중 가장 보수적인(낮은 순위) 상태를 채택
+  // 종합 판정: 표시 항목 중 가장 보수적인 상태
   let overall: Verdict = 'good'
   for (const item of items) {
     if (VERDICT_RANK[item.verdict] < VERDICT_RANK[overall]) {
       overall = item.verdict
     }
   }
-  // 표시 항목이 없으면 종합은 검토 필요
   if (items.length === 0) overall = 'review'
 
-  const overallSummary = buildOverallSummary(overall, recognition.verdict, isYouth)
+  const overallSummary = buildOverallSummary(overall, recognition.verdict, isYouth, score)
 
   return {
     overall,
     overallSummary,
+    score,
+    scoreFactors: factors,
     isYouth,
     age,
     startupRecognition: recognition.verdict,
     startupRecognitionNote: recognition.note,
+    exclusionReasons,
     items,
   }
 }
@@ -345,8 +322,11 @@ function buildOverallSummary(
   overall: Verdict,
   recognition: Verdict,
   isYouth: boolean | null,
+  score: number,
 ): string {
   const parts: string[] = []
+
+  parts.push(`감면 가능성 점수는 100점 만점에 ${score}점입니다.`)
 
   if (isYouth === true) parts.push('청년 창업 요건(만 15~34세)에 해당할 수 있습니다.')
   else if (isYouth === false) parts.push('연령 기준상 청년 창업 요건에는 해당하지 않습니다.')
@@ -372,97 +352,3 @@ function buildOverallSummary(
 
   return parts.join(' ')
 }
-
-// ---------------------------------------------------------------------------
-// 결과 요약문 생성 (카카오톡/문자 붙여넣기용)
-// ---------------------------------------------------------------------------
-const REGION_LABEL: Record<string, string> = {
-  seoul: '서울',
-  gyeonggi_incheon: '경기/인천',
-  metro_city: '지방 광역시',
-  other_local: '기타 지방',
-}
-
-const INDUSTRY_LABEL: Record<string, string> = {
-  manufacturing: '제조업',
-  ict: '정보통신업',
-  professional: '전문서비스업',
-  wholesale_retail: '도소매업',
-  restaurant: '음식점업',
-  real_estate: '부동산업',
-  finance_insurance: '금융/보험업',
-  etc: '기타',
-}
-
-const STARTUP_FORM_LABEL: Record<string, string> = {
-  brand_new: '완전 신규 창업',
-  conversion: '개인→법인 전환',
-  acquisition: '기존 사업 양수',
-  reopen_same: '폐업 후 같은 업종 재창업',
-  succession: '가족/특수관계인 승계',
-  unknown: '미상',
-}
-
-const OVERCONCENTRATION_LABEL: Record<string, string> = {
-  yes: '예',
-  no: '아니오',
-  unknown: '잘 모르겠음',
-}
-
-function formatToday(baseDate: Date): string {
-  const y = baseDate.getFullYear()
-  const m = String(baseDate.getMonth() + 1).padStart(2, '0')
-  const d = String(baseDate.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
-}
-
-export function buildSummaryText(
-  form: FormData,
-  result: JudgementResult,
-  baseDate: Date = new Date(),
-): string {
-  const lines: string[] = []
-  lines.push('📋 창업감면 1분 판정 결과')
-  lines.push(`📅 ${formatToday(baseDate)} 기준`)
-  lines.push('')
-
-  // 입력 요약
-  lines.push('[입력 요약]')
-  lines.push(`• 사업자: ${form.businessType === 'corporation' ? '법인사업자' : form.businessType === 'individual' ? '개인사업자' : '-'}`)
-  if (result.age !== null) {
-    lines.push(`• 대표자 나이: 만 ${result.age}세${result.isYouth ? ' (청년 요건 해당 가능)' : ''}`)
-  }
-  lines.push(`• 지역: ${form.region ? REGION_LABEL[form.region] : '-'}`)
-  lines.push(`• 과밀억제권역: ${form.overconcentration ? OVERCONCENTRATION_LABEL[form.overconcentration] : '-'}`)
-  lines.push(`• 업종: ${form.industry ? INDUSTRY_LABEL[form.industry] : '-'}`)
-  lines.push(`• 창업 형태: ${form.startupForm ? STARTUP_FORM_LABEL[form.startupForm] : '-'}`)
-  lines.push('')
-
-  // 종합 판정
-  lines.push(`[종합 판정] ${VERDICT_LABEL[result.overall]}`)
-  lines.push(result.overallSummary)
-  lines.push('')
-
-  // 항목별
-  lines.push('[항목별 판정]')
-  for (const item of result.items) {
-    lines.push(`• ${item.title}: ${VERDICT_LABEL[item.verdict]}`)
-    if (item.reasons[0]) lines.push(`   - ${item.reasons[0]}`)
-  }
-  lines.push('')
-
-  // 청년/병역 안내
-  lines.push('※ 병역기간에 따라 청년 여부가 달라질 수 있습니다.')
-  lines.push('')
-
-  // 주의문구
-  lines.push('[주의]')
-  lines.push(
-    '본 결과는 상담용 1차 판정이며, 실제 감면 적용 여부는 조세특례제한법, 지방세특례제한법, 업종코드, 창업 형태, 과밀억제권역 여부, 지자체 해석에 따라 달라질 수 있습니다. 최종 적용 전 세무사 또는 관할 지자체 확인이 필요합니다.',
-  )
-
-  return lines.join('\n')
-}
-
-export const DISCLAIMER =
-  '본 결과는 상담용 1차 판정이며, 실제 감면 적용 여부는 조세특례제한법, 지방세특례제한법, 업종코드, 창업 형태, 과밀억제권역 여부, 지자체 해석에 따라 달라질 수 있습니다. 최종 적용 전 세무사 또는 관할 지자체 확인이 필요합니다.'

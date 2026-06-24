@@ -1,3 +1,7 @@
+// ===========================================================================
+// 도메인 타입 정의
+// ===========================================================================
+
 // 사업자 유형
 export type BusinessType = 'individual' | 'corporation'
 
@@ -42,7 +46,11 @@ export interface FormData {
   checkItems: Record<ExemptionKey, boolean>
 }
 
-// 판정 상태 (4단계 + 정보)
+// ===========================================================================
+// 판정 결과 타입
+// ===========================================================================
+
+// 판정 상태 (4단계)
 export type Verdict = 'good' | 'caution' | 'bad' | 'review'
 
 // 개별 항목 판정 결과
@@ -55,14 +63,41 @@ export interface ItemResult {
   consultScript: string // 상담 멘트 예시
 }
 
+// 감면 가능성 점수 산정 근거 한 줄
+export interface ScoreFactor {
+  label: string // 항목명 (예: 창업 인정)
+  points: number // 획득 점수
+  max: number // 만점
+  note: string // 근거 설명
+}
+
+// 창업 제외사유 진단 항목
+export interface ExclusionReason {
+  title: string // 제외사유 유형
+  detail: string // 구체 설명
+  exception: string // 예외/검토 포인트
+}
+
 // 종합 판정 결과
 export interface JudgementResult {
   overall: Verdict
   overallSummary: string
-  // 부가 분석 정보
+
+  // 감면 가능성 점수 (0~100)
+  score: number
+  scoreFactors: ScoreFactor[]
+
+  // 청년 분석
   isYouth: boolean | null // 청년 여부 (생년월일 미입력 시 null)
   age: number | null // 만 나이
-  startupRecognition: Verdict // 창업 인정 여부 판정
+
+  // 창업 인정 분석
+  startupRecognition: Verdict
   startupRecognitionNote: string
+
+  // 창업 제외사유 진단 (해당 시)
+  exclusionReasons: ExclusionReason[]
+
+  // 항목별 판정
   items: ItemResult[]
 }
