@@ -97,16 +97,25 @@ export interface ExpertReview {
   factors: string[] // 감지된 검토 필요 요소
 }
 
+// 예상 절세 규모 (실제 세액 계산 아님, 가능성 수준만)
+export type SavingsLevelGrade = 'A' | 'B' | 'C' | 'D'
+export interface SavingsLevel {
+  level: SavingsLevelGrade
+  label: string // 예: 수천만 원 이상 절세 가능성
+}
+
 // 종합 판정 결과
 export interface JudgementResult {
   overall: Verdict
   oneLineConclusion: string // 한줄 결론 (사장님용)
   reasons: string[] // 판정 사유 (간단 불릿)
+  keyReasons: string[] // 이번 판정의 핵심 이유 (3줄, 창업형태/업종/권역)
   keyChecks: string[] // 주요 확인사항 (초기 화면 노출)
 
   // 상담 전환용 advisory
   savingsPoints: SavingsPoint[] // 예상 절세 포인트
   savingsAdvice: string // 상담 시 확인 포인트 한 줄
+  savingsLevel: SavingsLevel // 예상 절세 규모 (LEVEL A~D)
   missedPoints: string[] // 많은 대표님들이 놓치는 부분
   expertReview: ExpertReview // 전문가 검토 추천도 (A/B/C/D)
 

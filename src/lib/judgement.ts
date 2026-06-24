@@ -12,9 +12,11 @@ import {
   buildConsultQuestions,
   buildExpertReview,
   buildKeyChecks,
+  buildKeyReasons,
   buildMissedPoints,
   buildReasons,
   buildSavingsAdvice,
+  buildSavingsLevel,
   buildSavingsPoints,
 } from './consult'
 
@@ -35,12 +37,12 @@ export const VERDICT_EMOJI: Record<Verdict, string> = {
   bad: '🔴',
 }
 
-// 한줄 결론 (사장님이 3초 안에 이해)
+// 한줄 결론 (사장님이 3초 안에 "그래서 받을 수 있는가"를 이해)
 export const VERDICT_ONELINE: Record<Verdict, string> = {
-  good: '창업감면 적용 가능성이 높아 보입니다.',
-  caution: '감면 가능성은 있으나 권역·업종 확인이 필요합니다.',
-  conditional: '일부 조건에 따라 결과가 달라질 수 있습니다.',
-  bad: '현재 정보 기준 창업감면 적용이 어려워 보입니다.',
+  good: '현재 정보 기준으로 창업감면 적용 가능성이 높아 보입니다.',
+  caution: '창업감면 가능성은 있으나 일부 핵심 항목 확인이 필요합니다.',
+  conditional: '감면 가능성은 있으나 적용 여부가 크게 달라질 수 있습니다.',
+  bad: '현재 정보 기준으로는 창업감면 적용이 어려워 보입니다.',
 }
 
 // 긍정적일수록 높은 순위 (종합판정은 가장 보수적인 = 최저 순위 채택)
@@ -309,9 +311,11 @@ export function judge(form: FormData, baseDate: Date = new Date()): JudgementRes
     overall,
     oneLineConclusion: VERDICT_ONELINE[overall],
     reasons: buildReasons(form, isYouth),
+    keyReasons: buildKeyReasons(form),
     keyChecks,
     savingsPoints: buildSavingsPoints(coreItems, overall, recognition.verdict),
     savingsAdvice: buildSavingsAdvice(keyChecks),
+    savingsLevel: buildSavingsLevel(form, coreItems, overall, recognition.verdict, isYouth),
     missedPoints: buildMissedPoints(form, isYouth),
     expertReview: buildExpertReview(form, coreItems, isYouth, age),
     isYouth,

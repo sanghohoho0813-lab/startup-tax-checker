@@ -49,6 +49,18 @@ export default function PrintSheet({ form, result, baseDate }: Props) {
           {VERDICT_LABEL[result.overall]}
         </div>
         <p className="mt-1 text-[12px] font-semibold text-gray-800">→ {result.oneLineConclusion}</p>
+        <div className="mt-1.5 flex items-center gap-2 border-t border-gray-200 pt-1.5 text-[11px]">
+          <span className="font-bold text-gray-500">예상 절세 규모</span>
+          <span className="font-extrabold text-amber-700">
+            💰 LEVEL {result.savingsLevel.level} · {result.savingsLevel.label}
+          </span>
+        </div>
+        {result.keyReasons.length > 0 && (
+          <p className="mt-1 text-[10px] text-gray-600">
+            <b>핵심 이유 · </b>
+            {result.keyReasons.map((r) => `✓ ${r}`).join('   ')}
+          </p>
+        )}
       </div>
 
       {/* 입력 요약 */}

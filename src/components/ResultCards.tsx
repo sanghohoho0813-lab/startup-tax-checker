@@ -3,6 +3,8 @@ import type { JudgementResult } from '../types'
 import { DISCLAIMER } from '../lib/judgement'
 import { Accordion } from './ui'
 import OverallCard from './OverallCard'
+import KeyReasonsCard from './KeyReasonsCard'
+import SavingsLevelCard from './SavingsLevelCard'
 import ExpertReviewCard from './ExpertReviewCard'
 import SavingsCard from './SavingsCard'
 import ConsultCard from './ConsultCard'
@@ -37,11 +39,14 @@ export default function ResultCards({ result, summaryText, onBack, onPrint }: Pr
     window.setTimeout(() => setCopied(false), 2000)
   }
 
-  // 초기 노출: 1)종합판정 2)전문가 검토 추천도 3)예상 절세 포인트 4)복사/PDF 5)추가 확인 항목
+  // 초기 노출(중요도순): 종합결론 → 핵심 이유 → 예상 절세 규모 → 검토 추천도 → 절세 포인트
+  //                    → 복사/PDF → 추가 확인 항목
   // 접힘: 상담 예상 질문 / 대표님들이 놓치는 부분 / 세부 판정 근거
   return (
     <div className="flex flex-col gap-3">
       <OverallCard result={result} />
+      <KeyReasonsCard reasons={result.keyReasons} />
+      <SavingsLevelCard data={result.savingsLevel} />
       <ExpertReviewCard review={result.expertReview} />
       <SavingsCard points={result.savingsPoints} advice={result.savingsAdvice} />
 
@@ -119,7 +124,7 @@ export default function ResultCards({ result, summaryText, onBack, onPrint }: Pr
       </Accordion>
 
       {/* 상담 전환 CTA */}
-      <ContractCta checklist={result.consultChecklist} />
+      <ContractCta checklist={result.consultChecklist} checkCount={result.keyChecks.length} />
 
       {/* 주의 문구 */}
       <div className="rounded-3xl border border-gray-200 bg-gray-50 p-5">

@@ -2,9 +2,11 @@ import type {
   ExpertReview,
   FormData,
   ItemResult,
+  SavingsLevel,
   SavingsPoint,
   Verdict,
 } from '../types'
+import { LABEL } from './options'
 
 // 결과 기반으로 상담 활용 콘텐츠를 생성한다.
 // - reasons: 판정 사유 (간단 불릿, 종합카드/카톡 공용)
@@ -14,6 +16,72 @@ import type {
 
 function isExcludedIndustry(form: FormData): boolean {
   return form.industry === 'real_estate' || form.industry === 'finance_insurance'
+}
+
+// 창업 형태 짧은 라벨 (핵심 이유용)
+const STARTUP_FORM_SHORT: Record<string, string> = {
+  brand_new: '신규 창업',
+  conversion: '개인사업 법인전환',
+  acquisition: '기존 사업 양수',
+  reopen_same: '동종업 재창업',
+  succession: '특수관계인 승계',
+  unknown: '창업 형태 미확인',
+}
+
+// 이번 판정의 핵심 이유 (3줄) — 창업형태 / 업종 / 권역
+// 사용자가 결과 이유를 3초 안에 이해하도록 핵심만 추린다.
+export function buildKeyReasons(form: FormData): string[] {
+  const out: string[] = []
+
+  if (form.startupForm) out.push(STARTUP_FORM_SHORT[form.startupForm] ?? '창업 형태 미확인')
+  if (form.industry) out.push(LABEL.industry[form.industry] ?? '업종 미확인')
+
+  if (form.overconcentration === 'yes') out.push('수도권 과밀억제권역')
+  else if (form.overconcentration === 'no') out.push('비과밀억제권역')
+  else out.push('과밀억제권역 미확인')
+
+  return out.slice(0, 3)
+}
+
+// ---------------------------------------------------------------------------
+// 예상 절세 규모 (LEVEL A~D) — 실제 세액 계산이 아니라 가능성 수준만 안내
+// ---------------------------------------------------------------------------
+const SAVINGS_LEVEL_LABEL: Record<string, string> = {
+  A: '수천만 원 이상 절세 가능성',
+  B: '수백만~수천만 원 절세 가능성',
+  C: '제한적 절세 가능성',
+  D: '절세효과 기대 어려움',
+}
+
+export function buildSavingsLevel(
+  form: FormData,
+  coreItems: ItemResult[],
+  overall: Verdict,
+  recognition: Verdict,
+  isYouth: boolean | null,
+): SavingsLevel {
+  const income = coreItems.find((i) => i.key === 'incomeTax')
+  const incomeGood = income?.verdict === 'good'
+  const goodCount = coreItems.filter((i) => i.verdict === 'good').length
+
+  // 창업 제외 가능성이 크거나 종합이 불가면 절세효과 기대 어려움
+  if (recognition === 'bad' || overall === 'bad' || isExcludedIndustry(form)) {
+    return { level: 'D', label: SAVINGS_LEVEL_LABEL.D }
+  }
+
+  // 핵심 감면(법인세·소득세)이 유리 + 청년/비과밀 등 유리조건 → 가장 큰 절세 구간
+  const strongCondition = isYouth === true || form.overconcentration === 'no'
+  if (incomeGood && strongCondition && goodCount >= 2) {
+    return { level: 'A', label: SAVINGS_LEVEL_LABEL.A }
+  }
+  if (incomeGood) {
+    return { level: 'B', label: SAVINGS_LEVEL_LABEL.B }
+  }
+  if (overall === 'caution') {
+    return { level: 'B', label: SAVINGS_LEVEL_LABEL.B }
+  }
+  // 조건부 등 그 외
+  return { level: 'C', label: SAVINGS_LEVEL_LABEL.C }
 }
 
 // 판정 사유 (긍정/부정 요소를 짧게)
