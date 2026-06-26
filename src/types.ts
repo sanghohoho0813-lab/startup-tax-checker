@@ -34,6 +34,28 @@ export type StartupForm =
 // 감면 확인 항목 키
 export type ExemptionKey = 'incomeTax' | 'acquisitionTax' | 'propertyTax' | 'registrationTax'
 
+// 예/아니오/모름 3지선다 (상세 입력 공용)
+export type YesNoUnknown = 'yes' | 'no' | 'unknown'
+
+// 기존 사업과의 업종 관계
+export type IndustryRelation = 'same' | 'different' | 'none' | 'unknown'
+
+// 상세(선택) 입력 — 창업 인정/창업기업 확인 정밀 판단용
+export interface AdvancedInput {
+  hasExistingSole: YesNoUnknown | '' // 기존 개인사업자 보유 여부
+  hasExistingCorp: YesNoUnknown | '' // 기존 법인 보유 여부
+  isExistingExec: YesNoUnknown | '' // 기존 법인 임원 여부
+  newOwnerShare: string // 신규 법인 대표 지분율(%)
+  familyShare: string // 친족 합산 지분율(%)
+  existingCorpExecShare: string // 기존 법인+임원 합산 지분율(%)
+  isOligopoly: YesNoUnknown | '' // 기존 법인 과점주주 여부
+  prevIndustryRelation: IndustryRelation | '' // 기존 사업과 동종/이종 여부
+  assetTakeoverRatio: string // 기존 자산 인수 비율(%)
+  employeeMoved: YesNoUnknown | '' // 기존 직원 이동 여부
+  reuseIdentity: YesNoUnknown | '' // 기존 거래처/상호/홈페이지 사용 여부
+  sameAddress: YesNoUnknown | '' // 같은 주소/사무실 사용 여부
+}
+
 // 입력 폼 데이터
 export interface FormData {
   businessType: BusinessType | ''
@@ -44,6 +66,7 @@ export interface FormData {
   industry: Industry | ''
   startupForm: StartupForm | ''
   checkItems: Record<ExemptionKey, boolean>
+  advanced: AdvancedInput
 }
 
 // ===========================================================================
@@ -104,6 +127,29 @@ export interface SavingsLevel {
   label: string // 예: 수천만 원 이상 절세 가능성
 }
 
+// 청년 기준 (조특법 / 창업지원법 분리)
+export interface YouthStatus {
+  age: number | null
+  taxLaw: boolean | null // 조특법: 만 15~34세 (병역 최대 6년 차감)
+  taxLawNote: string
+  startupLaw: boolean | null // 창업지원법: 만 39세 이하
+  startupLawNote: string
+}
+
+// 법 기준별 판정 블록 (조특법 / 창업지원법 / 지방세)
+export type FrameworkKey = 'taxLaw' | 'startupLaw' | 'localTax'
+export interface FrameworkResult {
+  key: FrameworkKey
+  title: string // 예: 조특법 기준 (세액감면)
+  subtitle: string
+  verdict: Verdict
+  conclusion: string // 한줄 결론
+  points: SavingsPoint[] // 항목별 판단 (tone 포함)
+  risks: string[] // 핵심 리스크
+  checkPoints: string[] // 확인 필요사항
+  note: string // 동종 업종 기준 차이 등 분리 안내
+}
+
 // 종합 판정 결과
 export interface JudgementResult {
   overall: Verdict
@@ -119,9 +165,13 @@ export interface JudgementResult {
   missedPoints: string[] // 많은 대표님들이 놓치는 부분
   expertReview: ExpertReview // 전문가 검토 추천도 (A/B/C/D)
 
-  // 청년 분석
+  // 청년 분석 (기존 호환) + 이중 기준
   isYouth: boolean | null
   age: number | null
+  youth: YouthStatus
+
+  // 법 기준별 판정 (조특법 / 창업지원법 / 지방세)
+  frameworks: FrameworkResult[]
 
   // 창업 인정 분석
   startupRecognition: Verdict

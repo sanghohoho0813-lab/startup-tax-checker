@@ -1,10 +1,12 @@
 import type {
   BusinessType,
   ExemptionKey,
+  IndustryRelation,
   Industry,
   Overconcentration,
   Region,
   StartupForm,
+  YesNoUnknown,
 } from '../types'
 
 // 화면 선택지 + 라벨을 한 곳에서 관리 (폼 / 요약문 / PDF 공용)
@@ -56,6 +58,20 @@ export const CHECK_ITEMS: Option<ExemptionKey>[] = [
   { value: 'acquisitionTax', label: '취득세' },
   { value: 'propertyTax', label: '재산세' },
   { value: 'registrationTax', label: '등록면허세' },
+]
+
+// 상세(선택) 입력 공용 선택지
+export const YES_NO_UNKNOWN: Option<YesNoUnknown>[] = [
+  { value: 'yes', label: '예' },
+  { value: 'no', label: '아니오' },
+  { value: 'unknown', label: '모름' },
+]
+
+export const INDUSTRY_RELATIONS: Option<IndustryRelation>[] = [
+  { value: 'same', label: '동종' },
+  { value: 'different', label: '이종' },
+  { value: 'none', label: '해당 없음' },
+  { value: 'unknown', label: '모름' },
 ]
 
 // value -> label 빠른 조회용 헬퍼

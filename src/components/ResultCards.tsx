@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import type { JudgementResult } from '../types'
-import { DISCLAIMER } from '../lib/judgement'
+import { DISCLAIMER, DISCLAIMER_FRAMEWORK } from '../lib/judgement'
 import { Accordion } from './ui'
 import OverallCard from './OverallCard'
 import KeyReasonsCard from './KeyReasonsCard'
 import SavingsLevelCard from './SavingsLevelCard'
+import FrameworkTabs from './FrameworkTabs'
+import YouthCard from './YouthCard'
 import ExpertReviewCard from './ExpertReviewCard'
 import SavingsCard from './SavingsCard'
 import ConsultCard from './ConsultCard'
@@ -47,6 +49,8 @@ export default function ResultCards({ result, summaryText, onBack, onPrint }: Pr
       <OverallCard result={result} />
       <KeyReasonsCard reasons={result.keyReasons} />
       <SavingsLevelCard data={result.savingsLevel} />
+      <FrameworkTabs frameworks={result.frameworks} />
+      <YouthCard youth={result.youth} />
       <ExpertReviewCard review={result.expertReview} />
       <SavingsCard points={result.savingsPoints} advice={result.savingsAdvice} />
 
@@ -130,6 +134,9 @@ export default function ResultCards({ result, summaryText, onBack, onPrint }: Pr
       <div className="rounded-3xl border border-gray-200 bg-gray-50 p-5">
         <div className="mb-1 text-base font-bold text-gray-500">⚠️ 안내</div>
         <p className="text-base leading-relaxed text-gray-500">{DISCLAIMER}</p>
+        <p className="mt-3 border-t border-gray-200 pt-3 text-base leading-relaxed text-gray-500">
+          {DISCLAIMER_FRAMEWORK}
+        </p>
       </div>
     </div>
   )

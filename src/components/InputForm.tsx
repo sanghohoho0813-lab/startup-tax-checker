@@ -7,8 +7,9 @@ import {
   REGIONS,
   STARTUP_FORMS,
 } from '../lib/options'
-import { ChoiceGroup, FieldLabel, HintText, Section } from './ui'
+import { Accordion, ChoiceGroup, FieldLabel, HintText, Section } from './ui'
 import DateSelect from './DateSelect'
+import AdvancedSection from './AdvancedSection'
 
 interface Props {
   form: FormData
@@ -143,6 +144,14 @@ export default function InputForm({ form, onChange, onSubmit, onReset, currentYe
           })}
         </div>
       </Section>
+
+      {/* 9. 상세 입력 (선택, 접힘) */}
+      <Accordion title="상세 입력 (선택) · 법 기준 정밀 판정">
+        <AdvancedSection
+          value={form.advanced}
+          onChange={(advanced) => onChange({ ...form, advanced })}
+        />
+      </Accordion>
 
       {/* 액션 */}
       <div className="sticky bottom-4 z-10 mt-2 flex gap-3">

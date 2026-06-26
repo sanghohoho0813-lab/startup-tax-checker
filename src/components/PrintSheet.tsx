@@ -148,6 +148,31 @@ export default function PrintSheet({ form, result, baseDate }: Props) {
         )}
       </div>
 
+      {/* 법 기준별 판정 */}
+      <div className="mt-3">
+        <SectionTitle>법 기준별 판정</SectionTitle>
+        <table className="mt-1 w-full border-collapse text-[10px]">
+          <tbody>
+            {result.frameworks.map((f) => (
+              <tr key={f.key}>
+                <td className="w-[34%] border border-gray-300 px-2 py-1 font-semibold">{f.title}</td>
+                <td
+                  className="w-[18%] border border-gray-300 px-2 py-1 font-bold"
+                  style={{ color: VERDICT_PRINT_COLOR[f.verdict] }}
+                >
+                  {VERDICT_LABEL[f.verdict]}
+                </td>
+                <td className="border border-gray-300 px-2 py-1 text-gray-700">{f.conclusion}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="mt-1 text-[9px] text-gray-600">
+          청년 기준 · 조특법(만 15~34, 병역차감): {youthShort(result.youth.taxLaw)} / 창업지원법(만
+          39 이하): {youthShort(result.youth.startupLaw)}
+        </p>
+      </div>
+
       {/* 상담 권장사항 */}
       <div className="mt-3">
         <SectionTitle>상담 권장사항</SectionTitle>
@@ -167,8 +192,18 @@ export default function PrintSheet({ form, result, baseDate }: Props) {
         업종코드, 창업 형태, 과밀억제권역 여부, 지자체 해석에 따라 달라질 수 있습니다. 최종 적용
         전 세무사 또는 관할 지자체 확인이 필요합니다.
       </p>
+      <p className="mt-1 text-[9px] leading-relaxed text-gray-500">
+        ※ 조특법상 창업 인정과 중소기업창업 지원법상 창업기업 확인은 판단 목적과 기준이 다를 수
+        있으며, 세액감면·정책자금·창업기업확인은 각각 별도 검토가 필요합니다.
+      </p>
     </div>
   )
+}
+
+function youthShort(state: boolean | null): string {
+  if (state === true) return '해당 가능'
+  if (state === false) return '미해당'
+  return '확인 필요'
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {

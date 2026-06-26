@@ -183,12 +183,38 @@ export function buildConsultQuestions(form: FormData, isYouth: boolean | null): 
   }
   // 취득세 관련 (사업용 부동산)
   out.push('취득 예정인 사업용 부동산이 있으신가요?')
+
+  // 상세 입력 기반 자동 생성 질문 (사업 동일성·지분·매출 유형)
+  const a = form.advanced
+  if (a.sameAddress === 'yes' || a.sameAddress === 'unknown' || a.hasExistingSole === 'yes') {
+    out.push('기존 사업장과 주소가 완전히 분리되어 있나요?')
+  }
+  if (
+    a.reuseIdentity === 'yes' ||
+    a.reuseIdentity === 'unknown' ||
+    a.employeeMoved === 'yes' ||
+    form.startupForm === 'acquisition'
+  ) {
+    out.push('기존 사업의 직원·거래처·홈페이지·상표를 그대로 사용하나요?')
+  }
+  if (a.assetTakeoverRatio !== '' || form.startupForm === 'acquisition' || form.startupForm === 'conversion') {
+    out.push('기존 사업의 자산을 얼마나 가져왔나요? (인수 비율)')
+  }
+  if (form.businessType === 'corporation') {
+    out.push('신규 법인의 대표 및 친족 지분율은 어떻게 되나요?')
+  }
+  if (a.hasExistingCorp === 'yes' || a.isExistingExec !== 'no') {
+    out.push('기존 법인의 임원으로 등재되어 있나요?')
+  }
+  // 매출 유형 (조특법 업종 판단 핵심)
+  out.push('실제 매출은 상품매출인가요, 제품매출인가요, 용역매출인가요?')
+
   // 청년 병역
   if (isYouth === false || isYouth === null) {
-    out.push('대표자 병역 이행 기간이 있으신가요? (청년 기간 연장 가능)')
+    out.push('대표자 병역 이행 기간이 있으신가요? (조특법 청년 기간 연장 가능)')
   }
 
-  return dedupe(out).slice(0, 6)
+  return dedupe(out).slice(0, 8)
 }
 
 // 전문가 검토 시 확인할 항목 체크리스트 (계약 유도)

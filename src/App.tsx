@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import type { ExemptionKey, FormData } from './types'
+import type { AdvancedInput, ExemptionKey, FormData } from './types'
 import { judge } from './lib/judgement'
 import { buildSummaryText } from './lib/summary'
 import InputForm from './components/InputForm'
@@ -13,6 +13,21 @@ const EMPTY_CHECK: Record<ExemptionKey, boolean> = {
   registrationTax: false,
 }
 
+const EMPTY_ADVANCED: AdvancedInput = {
+  hasExistingSole: '',
+  hasExistingCorp: '',
+  isExistingExec: '',
+  newOwnerShare: '',
+  familyShare: '',
+  existingCorpExecShare: '',
+  isOligopoly: '',
+  prevIndustryRelation: '',
+  assetTakeoverRatio: '',
+  employeeMoved: '',
+  reuseIdentity: '',
+  sameAddress: '',
+}
+
 // 요청 사양: 생년월일 기본값 1980-01-01, 창업일 기본값 2020-01-01
 const INITIAL_FORM: FormData = {
   businessType: '',
@@ -23,6 +38,7 @@ const INITIAL_FORM: FormData = {
   industry: '',
   startupForm: '',
   checkItems: { ...EMPTY_CHECK },
+  advanced: { ...EMPTY_ADVANCED },
 }
 
 export default function App() {
@@ -48,7 +64,7 @@ export default function App() {
   }
 
   const handleReset = () => {
-    setForm({ ...INITIAL_FORM, checkItems: { ...EMPTY_CHECK } })
+    setForm({ ...INITIAL_FORM, checkItems: { ...EMPTY_CHECK }, advanced: { ...EMPTY_ADVANCED } })
     setSubmitted(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }

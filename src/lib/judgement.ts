@@ -7,6 +7,8 @@ import type {
 } from '../types'
 import { calcAge, isYouthAge } from './date'
 import { diagnoseExclusion } from './exclusion'
+import { buildYouthStatus } from './youth'
+import { buildFrameworks } from './frameworks'
 import {
   buildConsultChecklist,
   buildConsultQuestions,
@@ -55,6 +57,10 @@ const VERDICT_RANK: Record<Verdict, number> = {
 
 export const DISCLAIMER =
   '본 결과는 상담용 1차 판정이며, 실제 감면 적용 여부는 조세특례제한법, 지방세특례제한법, 업종코드, 창업 형태, 과밀억제권역 여부, 지자체 해석에 따라 달라질 수 있습니다. 최종 적용 전 세무사 또는 관할 지자체 확인이 필요합니다.'
+
+// 법 기준 분리 안내
+export const DISCLAIMER_FRAMEWORK =
+  '조특법상 창업 인정과 중소기업창업 지원법상 창업기업 확인은 판단 목적과 기준이 다를 수 있습니다. 세액감면, 정책자금, 창업기업확인은 각각 별도 검토가 필요합니다.'
 
 // ---------------------------------------------------------------------------
 // A. 창업 인정 여부 판정 (4단계)
@@ -306,6 +312,14 @@ export function judge(form: FormData, baseDate: Date = new Date()): JudgementRes
   }
 
   const keyChecks = buildKeyChecks(form)
+  const youth = buildYouthStatus(age)
+  const frameworks = buildFrameworks(
+    form,
+    allCore,
+    recognition.verdict,
+    youth,
+    registration ? registration.note : buildRegistrationReference(form).note,
+  )
 
   return {
     overall,
@@ -320,6 +334,8 @@ export function judge(form: FormData, baseDate: Date = new Date()): JudgementRes
     expertReview: buildExpertReview(form, coreItems, isYouth, age),
     isYouth,
     age,
+    youth,
+    frameworks,
     startupRecognition: recognition.verdict,
     startupRecognitionNote: recognition.note,
     exclusionReasons: diagnoseExclusion(form),
