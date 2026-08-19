@@ -18,6 +18,20 @@ export default function AdvancedSection({ value, onChange }: Props) {
         선택 입력입니다. 입력할수록 조특법·창업지원법 기준 판정이 더 정확해집니다.
       </p>
 
+      <div>
+        <Label>기존 개인사업 최초 개시일</Label>
+        <p className="mb-2.5 text-base leading-relaxed text-gray-400">
+          법인전환·양수·승계인 경우 창업일이 이 날짜로 승계됩니다. 업력(7년)과 감면 잔여기간(5년)
+          판단에 사용됩니다.
+        </p>
+        <input
+          type="date"
+          value={value.originalStartDate}
+          onChange={(e) => set('originalStartDate', e.target.value)}
+          className="w-full rounded-2xl border border-gray-200 px-4 py-4 text-lg text-gray-900 outline-none focus:border-brand"
+        />
+      </div>
+
       <Ynu label="기존 개인사업자 보유 여부" value={value.hasExistingSole} onSelect={(v) => set('hasExistingSole', v)} />
       <Ynu label="기존 법인 보유 여부" value={value.hasExistingCorp} onSelect={(v) => set('hasExistingCorp', v)} />
       <Ynu label="기존 법인 임원 여부" value={value.isExistingExec} onSelect={(v) => set('isExistingExec', v)} />

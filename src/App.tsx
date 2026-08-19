@@ -14,6 +14,7 @@ const EMPTY_CHECK: Record<ExemptionKey, boolean> = {
 }
 
 const EMPTY_ADVANCED: AdvancedInput = {
+  originalStartDate: '',
   hasExistingSole: '',
   hasExistingCorp: '',
   isExistingExec: '',

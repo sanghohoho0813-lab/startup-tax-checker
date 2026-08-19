@@ -9,6 +9,7 @@ import { calcAge, isYouthAge } from './date'
 import { diagnoseExclusion } from './exclusion'
 import { buildYouthStatus } from './youth'
 import { buildFrameworks } from './frameworks'
+import { buildLineage } from './lineage'
 import {
   buildConsultChecklist,
   buildConsultQuestions,
@@ -313,12 +314,14 @@ export function judge(form: FormData, baseDate: Date = new Date()): JudgementRes
 
   const keyChecks = buildKeyChecks(form)
   const youth = buildYouthStatus(age)
+  const lineage = buildLineage(form, baseDate)
   const frameworks = buildFrameworks(
     form,
     allCore,
     recognition.verdict,
     youth,
     registration ? registration.note : buildRegistrationReference(form).note,
+    lineage,
   )
 
   return {
@@ -336,6 +339,7 @@ export function judge(form: FormData, baseDate: Date = new Date()): JudgementRes
     age,
     youth,
     frameworks,
+    lineage,
     startupRecognition: recognition.verdict,
     startupRecognitionNote: recognition.note,
     exclusionReasons: diagnoseExclusion(form),

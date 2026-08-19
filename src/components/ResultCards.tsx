@@ -6,6 +6,7 @@ import OverallCard from './OverallCard'
 import KeyReasonsCard from './KeyReasonsCard'
 import SavingsLevelCard from './SavingsLevelCard'
 import FrameworkTabs from './FrameworkTabs'
+import LineageCard from './LineageCard'
 import YouthCard from './YouthCard'
 import ExpertReviewCard from './ExpertReviewCard'
 import SavingsCard from './SavingsCard'
@@ -49,6 +50,7 @@ export default function ResultCards({ result, summaryText, onBack, onPrint }: Pr
       <OverallCard result={result} />
       <KeyReasonsCard reasons={result.keyReasons} />
       <SavingsLevelCard data={result.savingsLevel} />
+      <LineageCard lineage={result.lineage} />
       <FrameworkTabs frameworks={result.frameworks} />
       <YouthCard youth={result.youth} />
       <ExpertReviewCard review={result.expertReview} />

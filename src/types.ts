@@ -42,6 +42,7 @@ export type IndustryRelation = 'same' | 'different' | 'none' | 'unknown'
 
 // 상세(선택) 입력 — 창업 인정/창업기업 확인 정밀 판단용
 export interface AdvancedInput {
+  originalStartDate: string // 기존 개인사업 최초 개시일 (법인전환 시 창업일 승계 기준)
   hasExistingSole: YesNoUnknown | '' // 기존 개인사업자 보유 여부
   hasExistingCorp: YesNoUnknown | '' // 기존 법인 보유 여부
   isExistingExec: YesNoUnknown | '' // 기존 법인 임원 여부
@@ -127,6 +128,18 @@ export interface SavingsLevel {
   label: string // 예: 수천만 원 이상 절세 가능성
 }
 
+// 창업일 승계 분석 (법인전환·양수 등에서 실질 창업일 산정)
+export interface Lineage {
+  inherited: boolean // 창업일이 기존 사업에서 승계되는 유형인지
+  effectiveStartDate: string // 실질 창업일 (승계 시 기존 개인사업 최초 개시일)
+  effectiveStartLabel: string // 근거 설명
+  businessAgeYears: number | null // 실질 창업일 기준 업력(년, 소수)
+  within7Years: boolean | null // 창업지원법 창업기업 업력 7년 이내 여부
+  taxRemainingYears: number | null // 조특법 감면 5년 중 잔여 연수
+  hasTaxRemaining: boolean | null // 감면 잔여기간 존재 여부
+  needsOriginalDate: boolean // 승계형인데 기존 개시일 미입력 → 확인 필요
+}
+
 // 청년 기준 (조특법 / 창업지원법 분리)
 export interface YouthStatus {
   age: number | null
@@ -172,6 +185,9 @@ export interface JudgementResult {
 
   // 법 기준별 판정 (조특법 / 창업지원법 / 지방세)
   frameworks: FrameworkResult[]
+
+  // 창업일 승계 분석 (법인전환 등)
+  lineage: Lineage
 
   // 창업 인정 분석
   startupRecognition: Verdict
