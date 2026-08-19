@@ -133,7 +133,7 @@ function buildTaxLaw(
     points,
     risks,
     checkPoints,
-    note: `청년 기준(조특법): ${youth.taxLawNote} · 동종 업종 판단 기준은 창업지원법과 다를 수 있습니다.`,
+    note: `청년이 아니어도 일반 창업중소기업 세액감면(감면율 축소) 대상이 될 수 있습니다. 청년은 감면율 우대(청년창업중소기업) 요건입니다 — ${youth.taxLawNote} · 동종 업종 판단 기준은 창업지원법과 다를 수 있습니다.`,
   }
 }
 
@@ -149,7 +149,8 @@ function buildStartupLaw(
   let v: Verdict = recognition
   const risks: string[] = []
   const checkPoints: string[] = [
-    '창업기업 확인(정책자금)은 업력 7년 이내 등 별도 요건 충족이 필요합니다.',
+    '창업기업 확인은 청년 여부와 무관하며, 업력 7년 이내 중소기업이면서 창업 제외사유에 해당하지 않으면 가능합니다.',
+    '청년(만 39세 이하)은 창업기업 확인의 필수 요건이 아니라 청년전용 정책자금 등 별도 우대 요건입니다.',
   ]
 
   let nf = 0
@@ -198,7 +199,7 @@ function buildStartupLaw(
     points,
     risks,
     checkPoints,
-    note: `청년 기준(창업지원법): ${youth.startupLawNote} · 동종 업종 판단 기준은 조특법과 다를 수 있습니다.`,
+    note: `창업기업 확인은 청년이 아니어도 요건 충족 시 가능합니다. 청년(만 39세 이하)은 별도 우대 요건입니다 — ${youth.startupLawNote} · 동종 업종 판단 기준은 조특법과 다를 수 있습니다.`,
   }
 }
 
